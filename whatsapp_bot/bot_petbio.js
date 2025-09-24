@@ -24,7 +24,7 @@ const dbConfig = {
 // =====================
 // Configuración MQTT con reconexión
 // =====================
-const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://mosquitto:1883';
+const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://mosquitto-stack:1883';
 const MQTT_CLIENT = mqtt.connect(MQTT_BROKER, { reconnectPeriod: 5000 });
 MQTT_CLIENT.on('connect', () => console.log('✅ Conectado a MQTT Broker'));
 MQTT_CLIENT.on('error', err => console.error('❌ Error MQTT:', err));

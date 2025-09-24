@@ -40,7 +40,7 @@ const dbConfig = {
     port: Number(process.env.MYSQL_PORT) || 3310,
     charset: 'utf8mb4'
 };
-const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://mosquitto:1883';
+const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://mosquitto-stack:1883';
 const MQTT_CLIENT = mqtt.connect(MQTT_BROKER);
 
 // =====================

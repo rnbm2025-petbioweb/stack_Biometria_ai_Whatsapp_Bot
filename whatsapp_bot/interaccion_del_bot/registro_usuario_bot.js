@@ -175,7 +175,7 @@ async function iniciarRegistroUsuario(msg, session, sessionFile) {
       if (!validarEntrada('aceptar_terminos', texto)) {
         await msg.reply(
           '❌ Debes aceptar los Términos y Condiciones.\n' +
-          'Responde "Sí" para aceptar.\n🌐 https://petbio.siac2025.com/politica_datos'
+          'Responde "Sí" para aceptar.\n🌐 https://registro.siac2025.com/politica_datos'
         );
         return;
       }
