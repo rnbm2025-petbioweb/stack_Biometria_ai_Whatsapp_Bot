@@ -47,7 +47,8 @@ const client = new Client({
   puppeteer: {
     headless: true,
     // ✅ Cambiamos la ruta fija por variable de entorno
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
+//    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
+    executablePath: puppeteer.executablePath(),
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
