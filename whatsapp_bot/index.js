@@ -1,14 +1,20 @@
-
-// index.js - PETBIO WhatsApp Bot en Producción
-const fs = require('fs');
-const path = require('path');
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
-const express = require('express');
-const mqtt = require('mqtt');
+// index.js - PETBIO WhatsApp Bot en Producción 🌐
+// ===============================================
+// Bot conectado a WhatsApp Web con Puppeteer + MQTT + Express
 
 // ===============================
-// Módulos propios
+// 📦 Dependencias
+// ===============================
+const fs = require('fs');
+const path = require('path');
+const express = require('express');
+const qrcode = require('qrcode-terminal');
+const mqtt = require('mqtt');
+const puppeteer = require('puppeteer'); // ✅ IMPORTANTE: necesario para executablePath()
+const { Client, LocalAuth } = require('whatsapp-web.js');
+
+// ===============================
+// 📁 Módulos propios (lógica del bot)
 // ===============================
 const saludoDelUsuario = require('./interaccion_del_bot/saludo_del_usuario');
 const menuInicioModule = require('./interaccion_del_bot/menu_inicio');
@@ -16,7 +22,7 @@ const { iniciarRegistroMascota } = require('./interaccion_del_bot/registro_masco
 const { iniciarRegistroUsuario } = require('./interaccion_del_bot/registro_usuario_bot');
 
 // ===============================
-// Healthcheck HTTP
+// 🌐 Healthcheck HTTP para Render
 // ===============================
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,30 +30,29 @@ app.get('/health', (req, res) => res.send('✅ PETBIO Bot activo'));
 app.listen(PORT, () => console.log(`🌐 Healthcheck en puerto ${PORT}`));
 
 // ===============================
-// MQTT con reconexión
+// 📶 Conexión MQTT con reconexión automática
 // ===============================
 const mqttClient = mqtt.connect(process.env.MQTT_BROKER || 'mqtt://mosquitto-stack:1883', {
   username: process.env.MQTT_USER || 'petbio_user',
   password: process.env.MQTT_PASS || 'petbio2025!',
-  reconnectPeriod: 5000 // reintento cada 5s
+  reconnectPeriod: 5000, // reintento cada 5s
 });
 mqttClient.on('connect', () => console.log('✅ Conectado a MQTT Broker'));
 mqttClient.on('error', err => console.error('❌ Error MQTT:', err));
 
 // ===============================
-// WhatsApp Client (Producción) con perfil temporal único
+// 🤖 Configuración del Cliente WhatsApp
 // ===============================
-const tmpProfileDir = `/tmp/wwebjs_${Date.now()}`; // perfil temporal para Puppeteer
-
+// Usamos perfil temporal para evitar errores de permisos en Render
+const tmpProfileDir = `/tmp/wwebjs_${Date.now()}`;
 
 const client = new Client({
   authStrategy: new LocalAuth({
-    dataPath: process.env.WWEBJS_AUTH_PATH || path.join(__dirname, '.wwebjs_auth')
+    dataPath: process.env.WWEBJS_AUTH_PATH || path.join(__dirname, '.wwebjs_auth'),
   }),
   puppeteer: {
     headless: true,
-    // ✅ Cambiamos la ruta fija por variable de entorno
-//    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
+    // ✅ Usamos el ejecutable que Puppeteer descarga automáticamente
     executablePath: puppeteer.executablePath(),
     args: [
       '--no-sandbox',
@@ -57,59 +62,60 @@ const client = new Client({
       '--disable-gpu',
       '--single-process',
       '--no-zygote',
-      `--user-data-dir=${tmpProfileDir}`
-    ]
-  }
+      `--user-data-dir=${tmpProfileDir}`,
+    ],
+  },
 });
 
-
-
+// ===============================
+// 📲 Eventos del cliente WhatsApp
+// ===============================
 client.on('qr', qr => {
-  console.log('📲 Escanea este código QR:');
+  console.log('📲 Escanea este código QR para vincular tu número:');
   qrcode.generate(qr, { small: true });
 });
 
-client.on('ready', () => console.log('✅ Cliente WhatsApp listo!'));
+client.on('ready', () => console.log('✅ Cliente WhatsApp listo y conectado!'));
 
 client.on('disconnected', reason => {
   console.error('⚠️ Cliente desconectado:', reason);
   // Borrar perfil temporal al desconectar
   try { fs.rmSync(tmpProfileDir, { recursive: true, force: true }); } catch (e) {}
-  setTimeout(() => client.initialize(), 5000); // reconexión automática
+  // Reintentar conexión automáticamente
+  setTimeout(() => client.initialize(), 5000);
 });
 
 // ===============================
-// Manejo de sesiones locales
+// 💾 Manejo de sesiones de usuarios
 // ===============================
 const sessionsDir = path.join(__dirname, 'sessions');
 if (!fs.existsSync(sessionsDir)) fs.mkdirSync(sessionsDir, { recursive: true });
 
-// Expiración de sesiones (ej: 12h)
-const SESSION_TTL = 1000 * 60 * 60 * 12;
+const SESSION_TTL = 1000 * 60 * 60 * 12; // 12 horas
 
 // ===============================
-// Comandos globales
+// 📡 Comandos globales
 // ===============================
 const CMD_MENU = ['menu', 'inicio', 'volver', 'home'];
 const CMD_CANCEL = ['cancelar', 'salir', 'stop', 'terminar', 'abortar'];
 
 // ===============================
-// Flujo de mensajes
+// 💬 Flujo principal de mensajes
 // ===============================
 client.on('message', async msg => {
   try {
     const sessionFile = path.join(sessionsDir, `${msg.from}.json`);
     let session = {};
 
-    // Recuperar sesión existente o crear nueva
+    // 📁 Cargar o inicializar sesión
     if (fs.existsSync(sessionFile)) {
       session = JSON.parse(fs.readFileSync(sessionFile));
       if (Date.now() - (session.lastActive || 0) > SESSION_TTL) {
-        session = {}; // expira
+        session = {}; // expira sesión antigua
       }
     }
 
-    // Inicializar estructura mínima
+    // 🧠 Inicializar estructura mínima
     session.type = session.type || 'menu_inicio';
     session.step = session.step || null;
     session.data = session.data || {};
@@ -119,14 +125,14 @@ client.on('message', async msg => {
     const userMsg = (msg.body || '').trim();
     const lcMsg = userMsg.toLowerCase();
 
-    // ---------- CANCELAR ----------
+    // 🛑 Comando CANCELAR
     if (CMD_CANCEL.includes(lcMsg)) {
       try { fs.unlinkSync(sessionFile); } catch (e) {}
       await msg.reply('🛑 Registro cancelado. Escribe *menu* para volver al inicio.');
       return;
     }
 
-    // ---------- MENU ----------
+    // 🏠 Comando MENU
     if (CMD_MENU.includes(lcMsg)) {
       session.type = 'menu_inicio';
       session.step = null;
@@ -138,7 +144,7 @@ client.on('message', async msg => {
       return;
     }
 
-    // ---------- Router principal ----------
+    // 🔀 Router principal según el estado de la sesión
     switch (session.type) {
       case 'menu_inicio': {
         const handleMenu = await menuInicioModule(msg, sessionFile, session);
@@ -156,6 +162,7 @@ client.on('message', async msg => {
         break;
     }
 
+    // 💾 Guardar sesión actualizada
     fs.writeFileSync(sessionFile, JSON.stringify(session));
   } catch (err) {
     console.error('❌ Error procesando mensaje:', err);
@@ -163,4 +170,5 @@ client.on('message', async msg => {
   }
 });
 
+// 🚀 Inicializar cliente WhatsApp
 client.initialize();
