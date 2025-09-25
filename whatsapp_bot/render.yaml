@@ -3,7 +3,7 @@ services:
     name: whatsapp-bot
     env: node
     plan: free
- #   buildCommand: npm install
     buildCommand: |
       yarn install
+      npx puppeteer browsers install chrome
     startCommand: node index.js

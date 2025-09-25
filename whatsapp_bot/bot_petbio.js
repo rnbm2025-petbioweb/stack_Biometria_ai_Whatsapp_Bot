@@ -25,7 +25,7 @@ const dbConfig = {
 // =====================
 // Configuración MQTT con reconexión y auth
 // =====================
-const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://mosquitto-stack:1883';
+const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://127.0.0.1:1883';
 
 const MQTT_CLIENT = mqtt.connect(MQTT_BROKER, { 
   username: process.env.MQTT_USER || 'petbio_user',

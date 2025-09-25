@@ -35,7 +35,7 @@ app.listen(PORT, () => console.log(`🌐 Healthcheck en puerto ${PORT}`));
 // ===============================
 // 📶 Conexión MQTT con reconexión automática
 // ===============================
-const mqttClient = mqtt.connect(process.env.MQTT_BROKER || 'mqtt://mosquitto-stack:1883', {
+const mqttClient = mqtt.connect(process.env.MQTT_BROKER || 'mqtt://127.0.0.1:1883', {
   username: process.env.MQTT_USER || 'petbio_user',
   password: process.env.MQTT_PASS || 'petbio2025!',
   reconnectPeriod: 5000, // reintento cada 5s
@@ -49,6 +49,41 @@ mqttClient.on('error', err => console.error('❌ Error MQTT:', err));
 // Usamos perfil temporal para evitar errores de permisos en Render
 const tmpProfileDir = `/tmp/wwebjs_${Date.now()}`;
 
+// 🧩 Definir la ruta del binario Chromium en Render
+/* const chromiumPath =
+  process.env.PUPPETEER_EXECUTABLE_PATH ||
+  '/opt/render/.cache/puppeteer/chrome/linux-1108766/chrome-linux64/chrome';
+*/
+
+const chromiumPath =
+  process.env.PUPPETEER_EXECUTABLE_PATH ||
+  '/home/josornol341/.cache/puppeteer/chrome/linux-140.0.7339.207/chrome-linux64/chrome';
+
+
+// ✅ Configuración del cliente WhatsApp con ruta explícita
+const client = new Client({
+  authStrategy: new LocalAuth({
+    dataPath: process.env.WWEBJS_AUTH_PATH || path.join(__dirname, '.wwebjs_auth'),
+  }),
+  puppeteer: {
+    headless: true,
+    executablePath: chromiumPath, // ← 👈 Ruta fija del binario
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-extensions',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--single-process',
+      '--no-zygote',
+      `--user-data-dir=${tmpProfileDir}`,
+    ],
+  },
+});
+
+
+
+/*
 const client = new Client({
   authStrategy: new LocalAuth({
     dataPath: process.env.WWEBJS_AUTH_PATH || path.join(__dirname, '.wwebjs_auth'),
@@ -69,7 +104,7 @@ const client = new Client({
     ],
   },
 });
-
+*/
 // ===============================
 // 📲 Eventos del cliente WhatsApp
 // ===============================
