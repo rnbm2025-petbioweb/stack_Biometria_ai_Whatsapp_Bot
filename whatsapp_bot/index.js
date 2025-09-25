@@ -1,3 +1,4 @@
+
 // index.js - PETBIO WhatsApp Bot en Producción
 const fs = require('fs');
 const path = require('path');
@@ -38,13 +39,15 @@ mqttClient.on('error', err => console.error('❌ Error MQTT:', err));
 // ===============================
 const tmpProfileDir = `/tmp/wwebjs_${Date.now()}`; // perfil temporal para Puppeteer
 
+
 const client = new Client({
   authStrategy: new LocalAuth({
     dataPath: process.env.WWEBJS_AUTH_PATH || path.join(__dirname, '.wwebjs_auth')
   }),
   puppeteer: {
     headless: true,
-    executablePath: '/usr/bin/chromium',
+    // ✅ Cambiamos la ruta fija por variable de entorno
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -57,6 +60,8 @@ const client = new Client({
     ]
   }
 });
+
+
 
 client.on('qr', qr => {
   console.log('📲 Escanea este código QR:');
