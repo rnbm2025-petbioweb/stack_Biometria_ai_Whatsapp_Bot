@@ -5,13 +5,16 @@
 // ===============================
 // 📦 Dependencias
 // ===============================
+
+// index.js - PETBIO WhatsApp Bot en Producción
 const fs = require('fs');
 const path = require('path');
-const express = require('express');
-const qrcode = require('qrcode-terminal');
-const mqtt = require('mqtt');
-const puppeteer = require('puppeteer'); // ✅ IMPORTANTE: necesario para executablePath()
+const puppeteer = require('puppeteer'); // ✅ IMPORTANTE: ahora sí lo usamos
 const { Client, LocalAuth } = require('whatsapp-web.js');
+const qrcode = require('qrcode-terminal');
+const express = require('express');
+const mqtt = require('mqtt');
+
 
 // ===============================
 // 📁 Módulos propios (lógica del bot)
