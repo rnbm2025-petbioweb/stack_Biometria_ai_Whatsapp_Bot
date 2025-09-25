@@ -18,7 +18,7 @@ const { iniciarRegistroMascota } = require('./interaccion_del_bot/registro_masco
 const { iniciarRegistroUsuario } = require('./interaccion_del_bot/registro_usuario_bot');
 
 // ===============================
-// 🌐 Healthcheck HTTP
+// 🌐 Healthcheck HTTP para Render
 // ===============================
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -31,9 +31,8 @@ app.listen(PORT, () => console.log(`🌐 Healthcheck en puerto ${PORT}`));
 const mqttClient = mqtt.connect(process.env.MQTT_BROKER || 'mqtt://127.0.0.1:1883', {
   username: process.env.MQTT_USER || 'petbio_user',
   password: process.env.MQTT_PASS || 'petbio2025!',
-  reconnectPeriod: 5000,
+  reconnectPeriod: 5000, // reintento cada 5s
 });
-
 mqttClient.on('connect', () => console.log('✅ Conectado a MQTT Broker'));
 mqttClient.on('error', err => console.error('❌ Error MQTT:', err));
 
@@ -42,34 +41,13 @@ mqttClient.on('error', err => console.error('❌ Error MQTT:', err));
 // ===============================
 const tmpProfileDir = `/tmp/wwebjs_${Date.now()}`;
 
-/*
 const client = new Client({
   authStrategy: new LocalAuth({
     dataPath: process.env.WWEBJS_AUTH_PATH || path.join(__dirname, '.wwebjs_auth'),
   }),
   puppeteer: {
     headless: true,
-    executablePath: puppeteer.executablePath(), // ✅ Usar Chromium descargado automáticamente
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-extensions',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--single-process',
-      '--no-zygote',
-      `--user-data-dir=${tmpProfileDir}`,
-    ],
-  },
-}); */
-
-const client = new Client({
-  authStrategy: new LocalAuth({
-    dataPath: process.env.WWEBJS_AUTH_PATH || path.join(__dirname, '.wwebjs_auth'),
-  }),
-  puppeteer: {
-    headless: true,
-    executablePath: puppeteer.executablePath(), // ← Usamos el binario de Puppeteer
+    executablePath: puppeteer.executablePath(), // ← Usamos el binario descargado automáticamente
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -82,7 +60,6 @@ const client = new Client({
     ],
   },
 });
-
 
 // ===============================
 // 📲 Eventos WhatsApp
@@ -105,7 +82,7 @@ client.on('disconnected', reason => {
 // ===============================
 const sessionsDir = path.join(__dirname, 'sessions');
 if (!fs.existsSync(sessionsDir)) fs.mkdirSync(sessionsDir, { recursive: true });
-const SESSION_TTL = 1000 * 60 * 60 * 12; // 12h
+const SESSION_TTL = 1000 * 60 * 60 * 12; // 12 horas
 
 // ===============================
 // 📡 Comandos globales
@@ -135,12 +112,14 @@ client.on('message', async msg => {
     const userMsg = (msg.body || '').trim();
     const lcMsg = userMsg.toLowerCase();
 
+    // Comando CANCELAR
     if (CMD_CANCEL.includes(lcMsg)) {
       try { fs.unlinkSync(sessionFile); } catch (e) {}
       await msg.reply('🛑 Registro cancelado. Escribe *menu* para volver al inicio.');
       return;
     }
 
+    // Comando MENU
     if (CMD_MENU.includes(lcMsg)) {
       session.type = 'menu_inicio';
       session.step = null;
@@ -152,6 +131,7 @@ client.on('message', async msg => {
       return;
     }
 
+    // Router principal según tipo de sesión
     switch (session.type) {
       case 'menu_inicio': {
         const handleMenu = await menuInicioModule(msg, sessionFile, session);
