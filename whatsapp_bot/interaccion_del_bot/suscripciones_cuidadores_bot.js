@@ -16,7 +16,7 @@ const dbConfig = {
     port: Number(process.env.MYSQL_PORT) || 3310
 };
 
-const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://localhost:1883';
+const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://192.168.1.20:1883';
 const MQTT_CLIENT = mqtt.connect(MQTT_BROKER, { clientId: 'suscripcion_bot_' + Math.random().toString(16).substr(2,8), clean: true });
 
 MQTT_CLIENT.on('connect', () => {

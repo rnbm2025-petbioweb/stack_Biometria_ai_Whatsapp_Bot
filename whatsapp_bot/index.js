@@ -26,7 +26,7 @@ app.listen(PORT, () => console.log(`🌐 Healthcheck en puerto ${PORT}`));
 // MQTT con reconexión
 // ===============================
 const mqttClient = mqtt.connect(process.env.MQTT_BROKER || 'mqtt://mosquitto-stack:1883', {
-  username: process.env.MQTT_USER || 'integrador',
+  username: process.env.MQTT_USER || 'petbio_user',
   password: process.env.MQTT_PASS || 'petbio2025!',
   reconnectPeriod: 5000 // reintento cada 5s
 });

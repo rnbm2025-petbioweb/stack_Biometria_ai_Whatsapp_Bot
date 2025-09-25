@@ -41,7 +41,7 @@ async function menuServicios(msg, sessionFile) {
 - 6 meses (3% descuento): $${precio6Meses}
 - 12 meses (7% descuento): $${precio12Meses}
 
-🌐 Suscríbete aquí: https://petbio.siac2025.com/suscripciones_cuidadores
+🌐 Suscríbete aquí: https://petbio.siac2025.com/suscripciones_cuidadores.php
 `, 40));
                 break;
             }

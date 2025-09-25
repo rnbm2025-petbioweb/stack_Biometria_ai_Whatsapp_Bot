@@ -28,7 +28,7 @@ function guardarSesion(userId, session){ fs.writeFileSync(getSessionFile(userId)
 // =====================
 // Configuración MQTT
 // =====================
-const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://mosquitto:1883';
+const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://mosquitto-stack:1883';
 const MQTT_USER = process.env.MQTT_USER || 'integrador';
 const MQTT_PASS = process.env.MQTT_PASS || 'petbio2025!';
 const MQTT_CLIENT = mqtt.connect(MQTT_BROKER, { username: MQTT_USER, password: MQTT_PASS });

@@ -21,13 +21,30 @@ const dbConfig = {
   port: process.env.MYSQL_PORT || 3306
 };
 
+
+// =====================
+// Configuración MQTT con reconexión y auth
+// =====================
+const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://mosquitto-stack:1883';
+
+const MQTT_CLIENT = mqtt.connect(MQTT_BROKER, { 
+  username: process.env.MQTT_USER || 'petbio_user',
+  password: process.env.MQTT_PASS || 'petbio2025!',
+  reconnectPeriod: 5000
+});
+
+  MQTT_CLIENT.on('connect', () => console.log('✅ Conectado a MQTT Broker'));
+  MQTT_CLIENT.on('error', err => console.error('❌ Error MQTT:', err.message));
+
+
+
 // =====================
 // Configuración MQTT con reconexión
 // =====================
-const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://mosquitto-stack:1883';
-const MQTT_CLIENT = mqtt.connect(MQTT_BROKER, { reconnectPeriod: 5000 });
-MQTT_CLIENT.on('connect', () => console.log('✅ Conectado a MQTT Broker'));
-MQTT_CLIENT.on('error', err => console.error('❌ Error MQTT:', err));
+//const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://mosquitto-stack:1883';
+//const MQTT_CLIENT = mqtt.connect(MQTT_BROKER, { reconnectPeriod: 5000 });
+//MQTT_CLIENT.on('connect', () => console.log('✅ Conectado a MQTT Broker'));
+//MQTT_CLIENT.on('error', err => console.error('❌ Error MQTT:', err));
 
 // =====================
 // Directorios

@@ -8,7 +8,7 @@
 const mqtt = require('mqtt');
 
 // Configuración de conexión a Mosquitto
-const MQTT_BROKER = 'mqtt://localhost:1883';
+const MQTT_BROKER = 'mqtt://192.168.1.20:1883';
 const MQTT_OPTIONS = {
     clientId: 'menu_usuario_' + Math.random().toString(16).substr(2, 8),
     clean: true,

@@ -148,6 +148,7 @@ async function iniciarRegistroUsuario(msg, session, sessionFile) {
 
   // Cancelar en cualquier momento
   if (lc === 'cancelar' || lc === 'cancel') {
+
     try { fs.unlinkSync(sessionFile); } catch(e){}
     await msg.reply('✅ Registro cancelado. Volviendo al inicio...');
     return;
