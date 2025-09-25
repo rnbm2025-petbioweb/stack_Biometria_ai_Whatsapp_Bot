@@ -42,6 +42,7 @@ mqttClient.on('error', err => console.error('❌ Error MQTT:', err));
 // ===============================
 const tmpProfileDir = `/tmp/wwebjs_${Date.now()}`;
 
+/*
 const client = new Client({
   authStrategy: new LocalAuth({
     dataPath: process.env.WWEBJS_AUTH_PATH || path.join(__dirname, '.wwebjs_auth'),
@@ -60,7 +61,28 @@ const client = new Client({
       `--user-data-dir=${tmpProfileDir}`,
     ],
   },
+}); */
+
+const client = new Client({
+  authStrategy: new LocalAuth({
+    dataPath: process.env.WWEBJS_AUTH_PATH || path.join(__dirname, '.wwebjs_auth'),
+  }),
+  puppeteer: {
+    headless: true,
+    executablePath: puppeteer.executablePath(), // ← Usamos el binario de Puppeteer
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-extensions',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--single-process',
+      '--no-zygote',
+      `--user-data-dir=${tmpProfileDir}`,
+    ],
+  },
 });
+
 
 // ===============================
 // 📲 Eventos WhatsApp
