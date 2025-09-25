@@ -1,11 +1,13 @@
 services:
   - type: web
-    name: petbio-whatsapp-bot
+    name: whatsapp-bot
     env: node
+    plan: free
     buildCommand: |
-      apt-get update && apt-get install -y chromium
-      npm install
+      apt-get update
+      apt-get install -y chromium chromium-browser
+      yarn install
     startCommand: node index.js
     envVars:
       - key: PUPPETEER_EXECUTABLE_PATH
-        value: /usr/bin/chromium
+        value: /usr/bin/chromium-browser
