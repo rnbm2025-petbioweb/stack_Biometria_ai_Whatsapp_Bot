@@ -28,7 +28,6 @@ app.get('/health', (req, res) => res.send('✅ PETBIO Bot activo'));
 // 📲 QR WhatsApp en PNG
 // ===============================
 const qrPath = path.join(__dirname, 'tmp_whatsapp_qr.png');
-
 app.get('/qr', (req, res) => {
     if (fs.existsSync(qrPath)) {
         res.sendFile(qrPath);
@@ -39,59 +38,30 @@ app.get('/qr', (req, res) => {
 
 app.listen(PORT, () => console.log(`🌐 Healthcheck en puerto ${PORT}`));
 
-
-/*
-
 // ===============================
 // 📶 Conexión MQTT (CloudMQTT)
 // ===============================
-const mqttClient = mqtt.connect('mqtt://duck.lmq.cloudamqp.com:1883', {
-    username: 'xdagoqsj',
-    password: 'flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L',
-    reconnectPeriod: 5000, // reintento cada 5s
-});
-
-mqttClient.on('connect', () => console.log('✅ Conectado a MQTT Broker (CloudMQTT)'));
-mqttClient.on('error', err => console.error('❌ Error MQTT:', err));
-
-*/
-
-
-// whatsapp_bot/config/mqttConfig.js
-//const mqtt = require("mqtt");
-
-// Las variables de entorno que configuras en Render
 const MQTT_HOST = process.env.MQTT_HOST || "duck.lmq.cloudamqp.com";
-const MQTT_PORT = process.env.MQTT_PORT || 1883;  // o 8883 si usas TLS
+const MQTT_PORT = process.env.MQTT_PORT || 1883;
 const MQTT_USER = process.env.MQTT_USER || "xdagoqsj:xdagoqsj";
 const MQTT_PASS = process.env.MQTT_PASS || "flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L";
 
-// Construir la URL
 const MQTT_URL = `mqtt://${MQTT_HOST}:${MQTT_PORT}`;
 
-const client = mqtt.connect(MQTT_URL, {
+const mqttClient = mqtt.connect(MQTT_URL, {
   username: MQTT_USER,
   password: MQTT_PASS,
-  connectTimeout: 30 * 1000, // 30s
-  reconnectPeriod: 5000      // reintentos cada 5s
+  connectTimeout: 30 * 1000,
+  reconnectPeriod: 5000
 });
 
-client.on("connect", () => {
-  console.log("✅ Conectado a MQTT");
-});
-
-client.on("error", (err) => {
-  console.error("❌ Error MQTT:", err);
-});
-
-module.exports = client;
-
-
+mqttClient.on("connect", () => console.log("✅ Conectado a MQTT"));
+mqttClient.on("error", (err) => console.error("❌ Error MQTT:", err));
 
 // ===============================
 // 🤖 Cliente WhatsApp
 // ===============================
-const client = new Client({
+const whatsappClient = new Client({
     puppeteer: {
         headless: true,
         args: [
@@ -106,11 +76,10 @@ const client = new Client({
 // ===============================
 // 📲 Eventos WhatsApp
 // ===============================
-client.on('qr', async qr => {
+whatsappClient.on('qr', async qr => {
     console.log('📲 Escanea este código QR para vincular tu número:');
     qrcode.generate(qr, { small: true });
 
-    // Guardar QR en PNG
     try {
         await QRCode.toFile(qrPath, qr, { width: 300 });
         console.log(`✅ QR guardado en PNG: ${qrPath}`);
@@ -119,11 +88,11 @@ client.on('qr', async qr => {
     }
 });
 
-client.on('ready', () => console.log('✅ Cliente WhatsApp listo y conectado!'));
+whatsappClient.on('ready', () => console.log('✅ Cliente WhatsApp listo y conectado!'));
 
-client.on('disconnected', reason => {
+whatsappClient.on('disconnected', reason => {
     console.error('⚠️ Cliente desconectado:', reason);
-    setTimeout(() => client.initialize(), 5000);
+    setTimeout(() => whatsappClient.initialize(), 5000);
 });
 
 // ===============================
@@ -142,7 +111,7 @@ const CMD_CANCEL = ['cancelar', 'salir', 'stop', 'terminar', 'abortar'];
 // ===============================
 // 💬 Flujo principal de mensajes
 // ===============================
-client.on('message', async msg => {
+whatsappClient.on('message', async msg => {
     try {
         const sessionFile = path.join(sessionsDir, `${msg.from}.json`);
         let session = {};
@@ -206,4 +175,4 @@ client.on('message', async msg => {
 });
 
 // 🚀 Inicializar cliente WhatsApp
-client.initialize();
+whatsappClient.initialize();
