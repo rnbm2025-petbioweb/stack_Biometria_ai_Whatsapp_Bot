@@ -39,6 +39,9 @@ app.get('/qr', (req, res) => {
 
 app.listen(PORT, () => console.log(`🌐 Healthcheck en puerto ${PORT}`));
 
+
+/*
+
 // ===============================
 // 📶 Conexión MQTT (CloudMQTT)
 // ===============================
@@ -50,6 +53,40 @@ const mqttClient = mqtt.connect('mqtt://duck.lmq.cloudamqp.com:1883', {
 
 mqttClient.on('connect', () => console.log('✅ Conectado a MQTT Broker (CloudMQTT)'));
 mqttClient.on('error', err => console.error('❌ Error MQTT:', err));
+
+*/
+
+
+// whatsapp_bot/config/mqttConfig.js
+const mqtt = require("mqtt");
+
+// Las variables de entorno que configuras en Render
+const MQTT_HOST = process.env.MQTT_HOST || "duck.lmq.cloudamqp.com";
+const MQTT_PORT = process.env.MQTT_PORT || 1883;  // o 8883 si usas TLS
+const MQTT_USER = process.env.MQTT_USER || "xdagoqsj:xdagoqsj";
+const MQTT_PASS = process.env.MQTT_PASS || "flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L";
+
+// Construir la URL
+const MQTT_URL = `mqtt://${MQTT_HOST}:${MQTT_PORT}`;
+
+const client = mqtt.connect(MQTT_URL, {
+  username: MQTT_USER,
+  password: MQTT_PASS,
+  connectTimeout: 30 * 1000, // 30s
+  reconnectPeriod: 5000      // reintentos cada 5s
+});
+
+client.on("connect", () => {
+  console.log("✅ Conectado a MQTT");
+});
+
+client.on("error", (err) => {
+  console.error("❌ Error MQTT:", err);
+});
+
+module.exports = client;
+
+
 
 // ===============================
 // 🤖 Cliente WhatsApp
