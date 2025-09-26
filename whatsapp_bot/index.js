@@ -3,7 +3,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const puppeteer = require('puppeteer'); // Chromium será descargado automáticamente
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const express = require('express');
@@ -47,7 +46,7 @@ const client = new Client({
   }),
   puppeteer: {
     headless: true,
-    executablePath: puppeteer.executablePath(), // ← Usamos el binario descargado automáticamente
+    executablePath: '/usr/bin/chromium', // Chromium del sistema
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
