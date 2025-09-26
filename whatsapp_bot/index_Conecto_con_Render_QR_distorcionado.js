@@ -5,7 +5,6 @@ const fs = require('fs');
 const path = require('path');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
-const QRCode = require('qrcode');
 const express = require('express');
 const mqtt = require('mqtt');
 
@@ -23,32 +22,18 @@ const { iniciarRegistroUsuario } = require('./interaccion_del_bot/registro_usuar
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.get('/health', (req, res) => res.send('✅ PETBIO Bot activo'));
-
-// ===============================
-// 📲 QR WhatsApp en PNG
-// ===============================
-const qrPath = path.join(__dirname, 'tmp_whatsapp_qr.png');
-
-app.get('/qr', (req, res) => {
-    if (fs.existsSync(qrPath)) {
-        res.sendFile(qrPath);
-    } else {
-        res.status(404).send('❌ QR aún no generado');
-    }
-});
-
 app.listen(PORT, () => console.log(`🌐 Healthcheck en puerto ${PORT}`));
 
 // ===============================
-// 📶 Conexión MQTT (CloudMQTT)
+// 📶 Conexión MQTT
 // ===============================
-const mqttClient = mqtt.connect('mqtt://duck.lmq.cloudamqp.com:1883', {
-    username: 'xdagoqsj',
-    password: 'flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L',
-    reconnectPeriod: 5000, // reintento cada 5s
+const mqttClient = mqtt.connect(process.env.MQTT_BROKER || 'mqtt://127.0.0.1:1883', {
+  username: process.env.MQTT_USER || 'petbio_user',
+  password: process.env.MQTT_PASS || 'petbio2025!',
+  reconnectPeriod: 5000, // reintento cada 5s
 });
 
-mqttClient.on('connect', () => console.log('✅ Conectado a MQTT Broker (CloudMQTT)'));
+mqttClient.on('connect', () => console.log('✅ Conectado a MQTT Broker'));
 mqttClient.on('error', err => console.error('❌ Error MQTT:', err));
 
 // ===============================
@@ -69,17 +54,9 @@ const client = new Client({
 // ===============================
 // 📲 Eventos WhatsApp
 // ===============================
-client.on('qr', async qr => {
+client.on('qr', qr => {
     console.log('📲 Escanea este código QR para vincular tu número:');
     qrcode.generate(qr, { small: true });
-
-    // Guardar QR en PNG
-    try {
-        await QRCode.toFile(qrPath, qr, { width: 300 });
-        console.log(`✅ QR guardado en PNG: ${qrPath}`);
-    } catch (err) {
-        console.error('❌ Error generando QR PNG:', err);
-    }
 });
 
 client.on('ready', () => console.log('✅ Cliente WhatsApp listo y conectado!'));
