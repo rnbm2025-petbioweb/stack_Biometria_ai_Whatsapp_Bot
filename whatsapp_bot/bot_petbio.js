@@ -5,7 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
 const PDFDocument = require('pdfkit');
-const mqtt = require('mqtt');
+//const mqtt = require('mqtt');
+const { mqttClient } = require('./config');
 const axios = require('axios');
 const { execFile } = require('child_process');
 const { URL } = require('url');
@@ -21,7 +22,7 @@ const dbConfig = {
   port: process.env.MYSQL_PORT || 3306
 };
 
-
+/*
 // =====================
 // Configuración MQTT con reconexión y auth
 // =====================
@@ -32,9 +33,12 @@ const MQTT_CLIENT = mqtt.connect(MQTT_BROKER, {
   password: process.env.MQTT_PASS || 'petbio2025!',
   reconnectPeriod: 5000
 });
+*/
+//  MQTT_CLIENT.on('connect', () => console.log('✅ Conectado a MQTT Broker'));
+// MQTT_CLIENT.on('error', err => console.error('❌ Error MQTT:', err.message));
 
-  MQTT_CLIENT.on('connect', () => console.log('✅ Conectado a MQTT Broker'));
-  MQTT_CLIENT.on('error', err => console.error('❌ Error MQTT:', err.message));
+mqttClient.on('connect', () => console.log('✅ Conectado a MQTT Broker'));
+mqttClient.on('error', err => console.error('❌ Error MQTT:', err.message));
 
 
 
@@ -110,7 +114,9 @@ async function guardarImagen(texto) {
 // =====================
 function enviarImagenesPython(id_mascota, imagenes) {
   const payload = JSON.stringify({ id_mascota, imagenes });
-  MQTT_CLIENT.publish(`entrenar_mascota/${id_mascota}`, payload);
+//  MQTT_CLIENT.publish(`entrenar_mascota/${id_mascota}`, payload);
+// Después:
+  mqttClient.publish('entrenar_mascota/123', payload);
 }
 
 // =====================

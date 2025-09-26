@@ -8,7 +8,7 @@ const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
 const express = require('express');
 const mqtt = require('mqtt');
-
+const { mqttClient } = require('./config');
 // ===============================
 // 📁 Módulos propios
 // ===============================
