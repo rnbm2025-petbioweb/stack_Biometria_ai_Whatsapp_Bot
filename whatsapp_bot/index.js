@@ -58,7 +58,7 @@ mqttClient.on('error', err => console.error('❌ Error MQTT:', err));
 
 
 // whatsapp_bot/config/mqttConfig.js
-const mqtt = require("mqtt");
+//const mqtt = require("mqtt");
 
 // Las variables de entorno que configuras en Render
 const MQTT_HOST = process.env.MQTT_HOST || "duck.lmq.cloudamqp.com";
