@@ -37,6 +37,7 @@ const mqttCloud = mqtt.connect(
 
 mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
 mqttCloud.on('error', (err) => console.error('❌ Error CloudMQTT:', err.message));
+/*
 
 // ===============================
 // MQTT - Mosquitto Local (DEV)
@@ -71,6 +72,8 @@ mqttLocalProd.on('connect', () => console.log('✅ Conectado a Mosquitto PROD'))
 mqttLocalProd.on('error', (err) =>
   console.error('❌ Error Mosquitto PROD:', err.message)
 );
+
+*/
 
 // ===============================
 // SUPABASE (Postgres)
