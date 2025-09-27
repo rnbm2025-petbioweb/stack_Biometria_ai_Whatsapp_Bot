@@ -105,8 +105,8 @@ async function testSupabaseConnection() {
 module.exports = {
   getMySQLConnection,
   mqttCloud,
-  mqttLocalDev,
-  mqttLocalProd,
+//  mqttLocalDev,
+//  mqttLocalProd,
   supabasePool,
   testSupabaseConnection,
 };
