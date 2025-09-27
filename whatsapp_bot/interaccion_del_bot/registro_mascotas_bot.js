@@ -120,7 +120,9 @@ async function guardarImagen(msgOrUrl, nombreArchivo, folder = PERFIL_DIR) {
 // =====================
 function enviarImagenesPython(id_mascota, imagenes) {
     const payload = JSON.stringify({ id_mascota, imagenes });
-    MQTT_CLIENT.publish(`entrenar_mascota/${id_mascota}`, payload);
+//  forma vieja; despues cambiamos desde el script de config.js
+//    MQTT_CLIENT.publish(`entrenar_mascota/${id_mascota}`, payload);
+    mqttClient.publish(`entrenar_mascota/${id_mascota}`, payload);
 }
 
 // =====================
@@ -238,7 +240,13 @@ async function registrarMascota(data, archivos) {
             [pdfNodePath, pdfPythonPath, id_mascota]
         );
 
-        enviarImagenesPython(id_mascota, Object.values(archivos).filter(Boolean));
+// este que se comenta es por que vamos a enviarle a  python:
+
+        //enviarImagenesPython(id_mascota, Object.values(archivos).filter(Boolean));
+
+// enviamos a python:
+
+        mqttClient.publish(`entrenar_mascota/${id_mascota}`, payload);
 
         return { id_mascota, numero_documento_petbio, pdfNodePath, pdfPythonPath };
     } finally {
