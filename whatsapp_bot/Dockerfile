@@ -141,4 +141,4 @@ EXPOSE 3000
 # ==========================
 # Comando de inicio con Puppeteer headless
 # ==========================
-CMD ["sh", "-c", "dumb-init xvfb-run --server-args='-screen 0 1280x1024x24' node index.js"]
+CMD ["sh", "-c", "dumb-init xvfb-run --server-args='-screen 0 1280x1024x24' node whatsapp_bot/index.js"]
