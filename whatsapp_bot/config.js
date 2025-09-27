@@ -1,12 +1,11 @@
-// config.js
-require('dotenv').config(); // Permite usar un archivo .env localmente
+require('dotenv').config();
+const mysql = require('mysql2/promise');
+const mqtt = require('mqtt');
 
 // ------------------ MYSQL ------------------
-const mysql = require('mysql2/promise');
-
 async function getMySQLConnection() {
   const connection = await mysql.createConnection({
-    host: process.env.MYSQL_HOST || 'mysql_petbio_secure', // contenedor o IP
+    host: process.env.MYSQL_HOST || 'mysql_petbio_secure',
     port: process.env.MYSQL_PORT || 3310,
     user: process.env.MYSQL_USER || 'root',
     password: process.env.MYSQL_PASSWORD || 'R00t_Segura_2025!',
@@ -16,20 +15,40 @@ async function getMySQLConnection() {
 }
 
 // ------------------ MQTT ------------------
-const mqtt = require('mqtt');
-
-const mqttClient = mqtt.connect(process.env.MQTT_BROKER || 'mqtt://duck-01.lmq.cloudamqp.com:1883', {
-  username: process.env.MQTT_USER || 'xdagoqsj:xdagoqsj',
-  password: process.env.MQTT_PASS || 'flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L',
-  connectTimeout: 30 * 1000,
+// 1️⃣ CloudMQTT (Render / producción)
+const mqttCloud = mqtt.connect(process.env.MQTT_CLOUD_BROKER || 'mqtt://duck-01.lmq.cloudamqp.com:1883', {
+  username: process.env.MQTT_CLOUD_USER || 'xdagoqsj:xdagoqsj',
+  password: process.env.MQTT_CLOUD_PASS || 'flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L',
   reconnectPeriod: 5000
 });
 
-mqttClient.on('connect', () => console.log('✅ Cliente MQTT conectado'));
-mqttClient.on('error', (err) => console.error('❌ Error MQTT SB_RDR:', err.message));
+mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
+mqttCloud.on('error', (err) => console.error('❌ Error CloudMQTT:', err.message));
+
+// 2️⃣ Mosquitto local – DEV
+const mqttLocalDev = mqtt.connect(process.env.MQTT_LOCAL_DEV_BROKER || 'mqtt://mosquitto-stack:1883', {
+  username: process.env.MQTT_LOCAL_DEV_USER || 'petbio_user_dev',
+  password: process.env.MQTT_LOCAL_DEV_PASS || 'petbio2025_dev!',
+  reconnectPeriod: 5000
+});
+
+mqttLocalDev.on('connect', () => console.log('✅ Conectado a Mosquitto DEV'));
+mqttLocalDev.on('error', (err) => console.error('❌ Error Mosquitto DEV:', err.message));
+
+// 3️⃣ Mosquitto local – REAL / PRODUCCIÓN del contenedor
+const mqttLocalProd = mqtt.connect(process.env.MQTT_LOCAL_BROKER || 'mqtt://mosquitto-stack:1883', {
+  username: process.env.MQTT_LOCAL_USER || 'petbio_user',
+  password: process.env.MQTT_LOCAL_PASS || 'petbio2025!',
+  reconnectPeriod: 5000
+});
+
+mqttLocalProd.on('connect', () => console.log('✅ Conectado a Mosquitto PROD'));
+mqttLocalProd.on('error', (err) => console.error('❌ Error Mosquitto PROD:', err.message));
 
 // ------------------ EXPORTS ------------------
 module.exports = {
   getMySQLConnection,
-  mqttClient
+  mqttCloud,
+  mqttLocalDev,
+  mqttLocalProd
 };

@@ -5,8 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
 const PDFDocument = require('pdfkit');
-//const mqtt = require('mqtt');
-const { mqttClient } = require('./config');
+const { mqttCloud, mqttLocalDev, mqttLocalProd } = require('./config');
 const axios = require('axios');
 const { execFile } = require('child_process');
 const { URL } = require('url');
@@ -22,33 +21,14 @@ const dbConfig = {
   port: process.env.MYSQL_PORT || 3306
 };
 
-/*
 // =====================
-// Configuración MQTT con reconexión y auth
+// MQTT - Logs de conexión
 // =====================
-const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://127.0.0.1:1883';
-
-const MQTT_CLIENT = mqtt.connect(MQTT_BROKER, { 
-  username: process.env.MQTT_USER || 'petbio_user',
-  password: process.env.MQTT_PASS || 'petbio2025!',
-  reconnectPeriod: 5000
+[mqttCloud, mqttLocalDev, mqttLocalProd].forEach((client, index) => {
+  const name = index === 0 ? 'CloudMQTT' : index === 1 ? 'Mosquitto DEV' : 'Mosquitto PROD';
+  client.on('connect', () => console.log(`✅ Conectado a ${name}`));
+  client.on('error', err => console.error(`❌ Error ${name}:`, err.message));
 });
-*/
-//  MQTT_CLIENT.on('connect', () => console.log('✅ Conectado a MQTT Broker'));
-// MQTT_CLIENT.on('error', err => console.error('❌ Error MQTT:', err.message));
-
-mqttClient.on('connect', () => console.log('✅ Conectado a MQTT Broker'));
-mqttClient.on('error', err => console.error('❌ Error MQTT:', err.message));
-
-
-
-// =====================
-// Configuración MQTT con reconexión
-// =====================
-//const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://mosquitto-stack:1883';
-//const MQTT_CLIENT = mqtt.connect(MQTT_BROKER, { reconnectPeriod: 5000 });
-//MQTT_CLIENT.on('connect', () => console.log('✅ Conectado a MQTT Broker'));
-//MQTT_CLIENT.on('error', err => console.error('❌ Error MQTT:', err));
 
 // =====================
 // Directorios
@@ -110,13 +90,16 @@ async function guardarImagen(texto) {
 }
 
 // =====================
-// Enviar imágenes a Python
+// Enviar imágenes a Python vía MQTT
 // =====================
-function enviarImagenesPython(id_mascota, imagenes) {
+function enviarImagenesPython(id_mascota, imagenes, entorno = 'prod') {
   const payload = JSON.stringify({ id_mascota, imagenes });
-//  MQTT_CLIENT.publish(`entrenar_mascota/${id_mascota}`, payload);
-// Después:
-  mqttClient.publish('entrenar_mascota/123', payload);
+  // Elegir broker según entorno
+  let broker = mqttLocalProd;
+  if (entorno === 'dev') broker = mqttLocalDev;
+  else if (entorno === 'cloud') broker = mqttCloud;
+
+  broker.publish(`entrenar_mascota/${id_mascota}`, payload);
 }
 
 // =====================
@@ -228,7 +211,7 @@ async function registrarMascota(data, archivos) {
       [pdfNodePath, pdfPythonPath, id_mascota]
     );
 
-    enviarImagenesPython(id_mascota, Object.values(archivos).filter(Boolean));
+    enviarImagenesPython(id_mascota, Object.values(archivos).filter(Boolean), 'prod');
 
     return { id_mascota, numero_documento_petbio, pdfNodePath, pdfPythonPath };
   } finally {

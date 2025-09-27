@@ -7,8 +7,10 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
 const express = require('express');
-const mqtt = require('mqtt');
-const { mqttClient } = require('./config');
+
+// ------------------ Configuración propia ------------------
+const { mqttCloud, mqttLocalDev, mqttLocalProd } = require('./config');
+
 // ===============================
 // 📁 Módulos propios
 // ===============================
@@ -22,6 +24,7 @@ const { iniciarRegistroUsuario } = require('./interaccion_del_bot/registro_usuar
 // ===============================
 const app = express();
 const PORT = process.env.PORT || 3000;
+
 app.get('/health', (req, res) => res.send('✅ PETBIO Bot activo'));
 
 // ===============================
@@ -39,24 +42,13 @@ app.get('/qr', (req, res) => {
 app.listen(PORT, () => console.log(`🌐 Healthcheck en puerto ${PORT}`));
 
 // ===============================
-// 📶 Conexión MQTT (CloudMQTT)
+// 📶 Conexión MQTT - Logs de cada broker
 // ===============================
-const MQTT_HOST = process.env.MQTT_HOST || "duck.lmq.cloudamqp.com";
-const MQTT_PORT = process.env.MQTT_PORT || 1883;
-const MQTT_USER = process.env.MQTT_USER || "xdagoqsj:xdagoqsj";
-const MQTT_PASS = process.env.MQTT_PASS || "flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L";
-
-const MQTT_URL = `mqtt://${MQTT_HOST}:${MQTT_PORT}`;
-
-const mqttClient = mqtt.connect(MQTT_URL, {
-  username: MQTT_USER,
-  password: MQTT_PASS,
-  connectTimeout: 30 * 1000,
-  reconnectPeriod: 5000
+[mqttCloud, mqttLocalDev, mqttLocalProd].forEach((client, index) => {
+    const name = index === 0 ? 'CloudMQTT' : index === 1 ? 'Mosquitto DEV' : 'Mosquitto PROD';
+    client.on('connect', () => console.log(`✅ Conectado a ${name}`));
+    client.on('error', (err) => console.error(`❌ Error ${name}:`, err.message));
 });
-
-mqttClient.on("connect", () => console.log("✅ Conectado a MQTT"));
-mqttClient.on("error", (err) => console.error("❌ Error MQTT:", err));
 
 // ===============================
 // 🤖 Cliente WhatsApp
@@ -160,7 +152,8 @@ whatsappClient.on('message', async msg => {
                 await iniciarRegistroUsuario(msg, session, sessionFile);
                 break;
             case 'registro_mascota':
-                await iniciarRegistroMascota(msg, session, sessionFile, mqttClient);
+                // Aquí puedes usar mqttLocalProd o mqttLocalDev según entorno
+                await iniciarRegistroMascota(msg, session, sessionFile, mqttLocalProd);
                 break;
             default:
                 await msg.reply('🤖 No entendí. Escribe *menu* para volver al inicio o *cancelar* para salir.');
