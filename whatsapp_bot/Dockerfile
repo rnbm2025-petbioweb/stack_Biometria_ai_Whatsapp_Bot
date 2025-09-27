@@ -64,7 +64,7 @@ WORKDIR /usr/src/app
 # ==========================
 # Copiar package.json e instalar dependencias
 # ==========================
-COPY package*.json ./
+#COPY package*.json ./
 #RUN npm ci --only=production \
 # && npm install puppeteer@19.11.1 pdfkit --save \
 # && npm cache clean --force
@@ -77,6 +77,22 @@ COPY package*.json ./
 # && npm install puppeteer@19.11.1 pdfkit --save \
 # && npm cache clean --force
 
+#RUN npm install --omit=dev \
+# && npm install puppeteer@19.11.1 pdfkit --save \
+# && npm cache clean --force
+
+
+# ==========================
+# Copiar archivos de dependencias
+# ==========================
+COPY ./package*.json /usr/src/app/
+
+# Verificar que se copiaron correctamente
+RUN ls -l /usr/src/app
+
+# ==========================
+# Instalar dependencias en modo producción
+# ==========================
 RUN npm install --omit=dev \
  && npm install puppeteer@19.11.1 pdfkit --save \
  && npm cache clean --force
