@@ -24,7 +24,7 @@ const mqttCloud = mqtt.connect(process.env.MQTT_CLOUD_BROKER || 'mqtt://duck-01.
 
 mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
 mqttCloud.on('error', (err) => console.error('❌ Error CloudMQTT:', err.message));
-
+/*
 // 2️⃣ Mosquitto local – DEV
 const mqttLocalDev = mqtt.connect(process.env.MQTT_LOCAL_DEV_BROKER || 'mqtt://mosquitto-stack:1883', {
   username: process.env.MQTT_LOCAL_DEV_USER || 'petbio_user_dev',
@@ -44,7 +44,7 @@ const mqttLocalProd = mqtt.connect(process.env.MQTT_LOCAL_BROKER || 'mqtt://mosq
 
 mqttLocalProd.on('connect', () => console.log('✅ Conectado a Mosquitto PROD'));
 mqttLocalProd.on('error', (err) => console.error('❌ Error Mosquitto PROD:', err.message));
-
+*/
 // ------------------ EXPORTS ------------------
 module.exports = {
   getMySQLConnection,
