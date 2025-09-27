@@ -8,7 +8,7 @@ const menuIdentidadCorporativa = require('./menu_identidad_corporativa');
 const menuODS = require('./ODS_NUMERAL_6_menu_inicio');
 const { menuTarifas } = require('./tarifas_menu');
 const menuServicios = require('./servicios_menu');
-const suscripcionesCuidadores = require('./suscripciones_cuidadores_bot'); // debe exportar función directamente
+const { suscripcionesCuidadores, procesarSuscripcion } = require('./suscripciones_cuidadores_bot'); // función y procesador
 
 const MENU_TEXT = `
 📋 *Menú PETBIO*
@@ -73,21 +73,24 @@ async function menuInicio(msg, sessionFile, session) {
         '5': async () => msg.reply(utils.justificarTexto(
             "🌐 Estás a punto de abrir nuestras redes sociales PETBIO:\n🔗 https://registro.siac2025.com/2025/02/11/48/"
         )),
-//        '6': async () => menuODS(msg, sessionFile, session),
-
-        // menu_inicio.js (fragmento de la opción 6)
         '6': async () => {
-	     const menuODS = require('./ODS_NUMERAL_6_menu_inicio');
-	     const handleODS = await menuODS(msg, sessionFile); // retorna el handler
-	     await handleODS('6', msg, sessionFile); // llama la opción 6 del ODS
+            const menuODS = require('./ODS_NUMERAL_6_menu_inicio');
+            const handleODS = await menuODS(msg, sessionFile);
+            await handleODS('6', msg, sessionFile);
         },
         '7': async () => menuTarifas(msg, sessionFile, session),
         '8': async () => menuServicios(msg, sessionFile),
-        '9': async () => suscripcionesCuidadores(msg),
+        '9': async () => suscripcionesCuidadores(msg, sessionFile, session),
     };
 
     // Función para manejar la opción elegida
     const handleOption = async (option) => {
+        if (session.type === 'suscripciones') {
+            // Procesar selección de plan en suscripciones
+            await procesarSuscripcion(msg, sessionFile, session);
+            return;
+        }
+
         if (opciones[option]) {
             await opciones[option]();
         } else {
@@ -101,4 +104,3 @@ async function menuInicio(msg, sessionFile, session) {
 }
 
 module.exports = menuInicio;
-
