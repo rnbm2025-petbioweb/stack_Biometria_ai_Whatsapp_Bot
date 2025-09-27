@@ -7,7 +7,8 @@ const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
 const PDFDocument = require('pdfkit');
-const { mqttCloud, mqttLocalDev, mqttLocalProd } = require('./config');
+//const { mqttCloud, mqttLocalDev, mqttLocalProd } = require('./config');
+const { mqttCloud } = require('./config');
 const axios = require('axios');
 const { execFile } = require('child_process');
 const { URL } = require('url');
@@ -26,8 +27,9 @@ const dbPool = mysql.createPool({
   queueLimit: 0
 });
 
+/*
 // =====================
-// MQTT - Logs de conexión y reconexión automática
+// MQTT - Logs de conexión y reconexión automática (multi-broker)
 // =====================
 [mqttCloud, mqttLocalDev, mqttLocalProd].forEach((client, index) => {
   const name = index === 0 ? 'CloudMQTT' : index === 1 ? 'Mosquitto DEV' : 'Mosquitto PROD';
@@ -37,6 +39,17 @@ const dbPool = mysql.createPool({
     client.end(true);
     setTimeout(() => client.reconnect(), 5000);
   });
+});
+*/
+
+// =====================
+// MQTT - Logs de conexión y reconexión automática (solo CloudMQTT)
+// =====================
+mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
+mqttCloud.on('error', (err) => {
+  console.error('❌ Error CloudMQTT:', err.message);
+  mqttCloud.end(true);
+  setTimeout(() => mqttCloud.reconnect(), 5000);
 });
 
 // =====================
@@ -98,13 +111,9 @@ async function guardarImagen(texto) {
 // =====================
 // Enviar imágenes a Python vía MQTT
 // =====================
-function enviarImagenesPython(id_mascota, imagenes, entorno = 'prod') {
+function enviarImagenesPython(id_mascota, imagenes) {
   const payload = JSON.stringify({ id_mascota, imagenes });
-  let broker = mqttLocalProd;
-  if (entorno === 'dev') broker = mqttLocalDev;
-  else if (entorno === 'cloud') broker = mqttCloud;
-
-  broker.publish(`entrenar_mascota/${id_mascota}`, payload);
+  mqttCloud.publish(`entrenar_mascota/${id_mascota}`, payload);
 }
 
 // =====================
@@ -142,7 +151,7 @@ function generarPDFPython(payload) {
     const scriptPath = '/app/biometria_ai/generar_cedula_bot.py';
     execFile('python3', [scriptPath, JSON.stringify(payload)], (error, stdout) => {
       if (error) return reject(error);
-      try { resolve(JSON.parse(stdout).cedula_path); } 
+      try { resolve(JSON.parse(stdout).cedula_path); }
       catch (e) { reject(e); }
     });
   });
@@ -189,7 +198,7 @@ async function registrarMascota(data, archivos) {
       [pdfNodePath, pdfPythonPath, id_mascota]
     );
 
-    enviarImagenesPython(id_mascota, Object.values(archivos).filter(Boolean), 'prod');
+    enviarImagenesPython(id_mascota, Object.values(archivos).filter(Boolean));
 
     return { id_mascota, numero_documento_petbio, pdfNodePath, pdfPythonPath };
   } finally {

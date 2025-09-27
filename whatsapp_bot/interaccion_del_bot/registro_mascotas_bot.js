@@ -4,9 +4,11 @@
 const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
-const mqtt = require('mqtt');
+//const mqtt = require('mqtt');   // 🚫 Comentado, ya no usamos mqtt directo
+
 const { execFile } = require('child_process');
 const { safe } = require('./utils_bot'); // Funciones utilitarias propias
+const { mqttCloud } = require('./config'); // ✅ Usamos solo CloudMQTT
 
 // =====================
 // Autocompletar raza
@@ -40,8 +42,12 @@ const dbConfig = {
     port: Number(process.env.MYSQL_PORT) || 3310,
     charset: 'utf8mb4'
 };
-const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://mosquitto-stack:1883';
-const MQTT_CLIENT = mqtt.connect(MQTT_BROKER);
+
+// 🚫 Antes usábamos broker local (DEV/PROD)
+// const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://mosquitto-stack:1883';
+// const MQTT_CLIENT = mqtt.connect(MQTT_BROKER);
+
+// ✅ Ahora todo se hace vía CloudMQTT desde config.js
 
 // =====================
 // Generar número PETBIO
@@ -120,9 +126,13 @@ async function guardarImagen(msgOrUrl, nombreArchivo, folder = PERFIL_DIR) {
 // =====================
 function enviarImagenesPython(id_mascota, imagenes) {
     const payload = JSON.stringify({ id_mascota, imagenes });
-//  forma vieja; despues cambiamos desde el script de config.js
-//    MQTT_CLIENT.publish(`entrenar_mascota/${id_mascota}`, payload);
-    mqttClient.publish(`entrenar_mascota/${id_mascota}`, payload);
+
+    // 🚫 Forma vieja: broker local
+    // MQTT_CLIENT.publish(`entrenar_mascota/${id_mascota}`, payload);
+    // mqttClient.publish(`entrenar_mascota/${id_mascota}`, payload);
+
+    // ✅ Ahora publicamos solo con CloudMQTT
+    mqttCloud.publish(`entrenar_mascota/${id_mascota}`, payload);
 }
 
 // =====================
@@ -240,13 +250,12 @@ async function registrarMascota(data, archivos) {
             [pdfNodePath, pdfPythonPath, id_mascota]
         );
 
-// este que se comenta es por que vamos a enviarle a  python:
+        // 🚫 Antes: enviábamos imágenes a Python con cliente local
+        // enviarImagenesPython(id_mascota, Object.values(archivos).filter(Boolean));
 
-        //enviarImagenesPython(id_mascota, Object.values(archivos).filter(Boolean));
-
-// enviamos a python:
-
-        mqttClient.publish(`entrenar_mascota/${id_mascota}`, payload);
+        // ✅ Ahora enviamos a Python con CloudMQTT
+        const payload = JSON.stringify({ id_mascota, imagenes: Object.values(archivos).filter(Boolean) });
+        mqttCloud.publish(`entrenar_mascota/${id_mascota}`, payload);
 
         return { id_mascota, numero_documento_petbio, pdfNodePath, pdfPythonPath };
     } finally {
@@ -299,9 +308,9 @@ async function iniciarRegistroMascota(msg, session, sessionFile) {
                             latiz: session.data.fotos[2],
                             hf0: session.data.fotos[3],
                             hf15: session.data.fotos[4],
-                            hf30: null,
-                            hfld15: null,
-                            hfli15: null
+                            hf30: session.data.fotos[5],
+                            hfld15: session.data.fotos[6],
+                            hfli15: session.data.fotos[7]
                         };
                         const resultado = await registrarMascota(data, archivos);
                         await msg.reply(`✅ Mascota registrada con número PETBIO: ${resultado.numero_documento_petbio}`);
