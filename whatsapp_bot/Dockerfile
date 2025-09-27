@@ -59,7 +59,17 @@ WORKDIR /usr/src/app
 # ==========================
 # Copiar package.json y package-lock.json, instalar dependencias
 # ==========================
-COPY package.json package-lock.json ./
+#COPY package.json package-lock.json ./
+
+# ==========================
+# Copiar package.json e instalar dependencias
+# ==========================
+COPY package*.json ./
+RUN npm ci --only=production \
+ && npm install puppeteer@19.11.1 pdfkit --save \
+ && npm cache clean --force
+
+
 
 # ⚡ Cambio clave: usamos npm install en lugar de npm ci para Render
 RUN npm install --production \
