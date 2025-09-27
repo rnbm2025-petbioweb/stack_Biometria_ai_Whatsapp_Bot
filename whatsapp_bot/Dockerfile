@@ -57,10 +57,12 @@ RUN groupadd -r app && useradd -r -g app -d /usr/src/app -s /sbin/nologin app
 WORKDIR /usr/src/app
 
 # ==========================
-# Copiar package.json e instalar dependencias
+# Copiar package.json y package-lock.json, instalar dependencias
 # ==========================
-COPY package*.json ./
-RUN npm ci --only=production \
+COPY package.json package-lock.json ./
+
+# ⚡ Cambio clave: usamos npm install en lugar de npm ci para Render
+RUN npm install --production \
  && npm install puppeteer@19.11.1 pdfkit --save \
  && npm cache clean --force
 
@@ -103,4 +105,3 @@ EXPOSE 3000
 # Comando de inicio con Puppeteer headless
 # ==========================
 CMD ["sh", "-c", "dumb-init xvfb-run --server-args='-screen 0 1280x1024x24' node index.js"]
-
