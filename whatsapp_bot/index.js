@@ -40,6 +40,7 @@ app.get('/qr', (req, res) => {
 
 app.listen(PORT, () => console.log(`🌐 Healthcheck en puerto ${PORT}`));
 
+/*   // COMENTADO POR QUE SE DESCONECTARON DEL RENDER LOS MOSQUITTO PROD Y DEV
 // ------------------ 📶 Conexión MQTT ------------------
 [mqttCloud, mqttLocalDev, mqttLocalProd].forEach((client, index) => {
   const name = index === 0 ? 'CloudMQTT' : index === 1 ? 'Mosquitto DEV' : 'Mosquitto PROD';
@@ -49,6 +50,19 @@ app.listen(PORT, () => console.log(`🌐 Healthcheck en puerto ${PORT}`));
     client.end(true);
   });
 });
+
+*/
+
+// ------------------ 📶 Conexión MQTT ------------------
+// Solo usamos CloudMQTT por ahora
+if (mqttCloud) {
+  mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
+  mqttCloud.on('error', (err) => {
+    console.error('❌ Error CloudMQTT:', err.message);
+    mqttCloud.end(true);
+  });
+}
+
 
 // ------------------ 🤖 Cliente WhatsApp ------------------
 const whatsappClient = new Client({
@@ -131,8 +145,12 @@ whatsappClient.on('message', async msg => {
       case 'registro_usuario':
         await iniciarRegistroUsuario(msg, session, null);
         break;
-      case 'registro_mascota':
+/*      case 'registro_mascota':
         await iniciarRegistroMascota(msg, session, null, mqttLocalProd);
+        break;
+*/
+      case 'registro_mascota':
+        await iniciarRegistroMascota(msg, session, null, mqttCloud);
         break;
       case 'suscripciones':
         await iniciarSuscripciones(msg, session, null);
