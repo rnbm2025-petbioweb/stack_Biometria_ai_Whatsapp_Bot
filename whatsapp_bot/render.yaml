@@ -1,9 +1,102 @@
 services:
   - type: web
     name: whatsapp-bot
-    env: node
+    env: docker
     plan: free
-    buildCommand: |
-      yarn install
-      npx puppeteer install chrome
-    startCommand: node whatsapp_bot/index.js
+
+    # ===== Directorio raíz donde está tu Dockerfile =====
+    rootDir: puppeteer/whatsapp_bot
+
+    # ===== Comando de build =====
+    buildCommand: docker build -t whatsapp-bot .
+
+    # ===== Comando de inicio =====
+    startCommand: docker run -p 3000:3000 --env-file .env whatsapp-bot
+
+    # ===== Variables de entorno para Render =====
+    envVars:
+      # Node / App
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: PUPPETEER_EXECUTABLE_PATH
+        value: /usr/bin/chromium-browser
+      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+        value: "true"
+
+      # API Keys / Servicios externos
+      - key: OPENAI_API_KEY
+        value: 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
+      - key: TWILIO_SID
+        value: ACe15576d5f4212f1aa78999a3f53820d1
+      - key: TWILIO_AUTH
+        value: f462e76653a85ac6172d441a7bd67332
+      - key: TWILIO_NUMBER
+        value: whatsapp:+14155238886
+      - key: ADMIN_NUMBER
+        value: whatsapp:+573007019277
+      - key: VERIFY_SERVICE_SID
+        value: VA4c43e35a016e2242bb25a929b9b59cba
+
+      # URLs catálogos / suscripción
+      - key: CATALOG_URL
+        value: http://php_integrator/catalogos.php
+      - key: SUSCRIPCION_URL
+        value: http://php_integrator/whatsapp-suscripcion.php
+
+      # Usuarios locales / permisos
+      - key: LOCAL_UID
+        value: "1000"
+      - key: LOCAL_GID
+        value: "1000"
+
+      # MySQL (WhatsApp Bot)
+      - key: MYSQL_HOST
+        value: 172.19.0.13
+      - key: MYSQL_PORT
+        value: "3310"
+      - key: MYSQL_USER
+        value: root
+      - key: MYSQL_PASSWORD
+        value: R00t_Segura_2025!
+      - key: MYSQL_DATABASE
+        value: db__produccion_petbio_segura_2025
+
+      # MQTT Cloud (CloudMQTT)
+      - key: MQTT_CLOUD_BROKER
+        value: mqtt://duck-01.lmq.cloudamqp.com:1883
+      - key: MQTT_CLOUD_USER
+        value: xdagoqsj:xdagoqsj
+      - key: MQTT_CLOUD_PASS
+        value: flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L
+
+      # MQTT Local DEV
+      - key: MQTT_LOCAL_DEV_BROKER
+        value: mqtt://mosquitto-stack:1883
+      - key: MQTT_LOCAL_DEV_USER
+        value: petbio_user_dev
+      - key: MQTT_LOCAL_DEV_PASS
+        value: petbio2025_dev!
+
+      # MQTT Local PROD
+      - key: MQTT_LOCAL_BROKER
+        value: mqtt://mosquitto-stack:1883
+      - key: MQTT_LOCAL_USER
+        value: petbio_user
+      - key: MQTT_LOCAL_PASS
+        value: petbio2025!
+
+      # Supabase / PostgreSQL
+      - key: SUPABASE_DB_URL
+        value: postgresql://postgres:R00t_Segura_2025!@db.jbsxvonnrahhfffeacdy.supabase.co:5432/postgres
+      - key: SUPABASE_HOST
+        value: db.jbsxvonnrahhfffeacdy.supabase.co
+      - key: SUPABASE_PORT
+        value: "5432"
+      - key: SUPABASE_USER
+        value: postgres
+      - key: SUPABASE_PASS
+        value: R00t_Segura_2025!
+      - key: SUPABASE_DB
+        value: postgres
