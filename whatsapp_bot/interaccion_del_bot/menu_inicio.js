@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const utils = require('./utils_bot');
-const { mqttCloud } = require('./config.js'); // Usamos directamente tu cliente CloudMQTT
+const { mqttCloud } = require('../config.js'); // Usamos directamente tu cliente CloudMQTT
 
 // Importar submenús
 const menuIdentidadCorporativa = require('./menu_identidad_corporativa');
