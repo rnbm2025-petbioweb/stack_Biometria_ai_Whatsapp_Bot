@@ -27,6 +27,8 @@ async function getMySQLConnection() {
 // ===============================
 // MQTT - CloudMQTT (Render / Producción)
 // ===============================
+
+/*
 const mqttCloud = mqtt.connect(
   process.env.MQTT_CLOUD_BROKER || 'mqtt://duck-01.lmq.cloudamqp.com:1883',
   {
@@ -34,7 +36,7 @@ const mqttCloud = mqtt.connect(
     password: process.env.MQTT_CLOUD_PASS || 'flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L',
     reconnectPeriod: 5000,
   }
-);
+);  */
 
 mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
 mqttCloud.on('error', (err) => console.error('❌ Error CloudMQTT:', err.message));
