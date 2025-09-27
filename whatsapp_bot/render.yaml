@@ -3,6 +3,7 @@ services:
     name: whatsapp-bot
     env: node
     plan: free
+    rootDir: whatsapp_bot   # Aquí debe estar package.json
     buildCommand: |
       yarn install
       npx puppeteer install chrome
