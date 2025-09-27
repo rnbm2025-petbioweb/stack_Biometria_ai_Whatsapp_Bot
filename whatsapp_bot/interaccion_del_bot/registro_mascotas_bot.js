@@ -8,7 +8,7 @@ const mysql = require('mysql2/promise');
 
 const { execFile } = require('child_process');
 const { safe } = require('./utils_bot'); // Funciones utilitarias propias
-const { mqttCloud } = require('./config'); // ✅ Usamos solo CloudMQTT
+const { mqttCloud } = require('../config'); // ✅ Usamos solo CloudMQTT
 
 // =====================
 // Autocompletar raza
