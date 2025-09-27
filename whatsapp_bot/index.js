@@ -14,7 +14,7 @@ const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ------------------ 📡 Configuración MQTT ------------------
-const { mqttCloud, mqttLocalDev, mqttLocalProd } = require('./config');
+const { mqttCloud, mqttLocalDev, mqttLocalProd } = require('../config');
 
 // ------------------ 🤖 Módulos propios ------------------
 const saludoDelUsuario = require('./interaccion_del_bot/saludo_del_usuario');

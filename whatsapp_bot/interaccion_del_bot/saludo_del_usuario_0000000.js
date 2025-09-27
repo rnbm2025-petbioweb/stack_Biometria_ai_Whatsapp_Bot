@@ -4,21 +4,6 @@ const fs = require('fs');
 const path = require('path');
 const utils = require('./utils_bot');
 const { iniciarMenu } = require('./menu_luego_de_registro_de_usuario');
-const { mqttCloud } = require('../config.js'); // mismo cliente que menu_inicio.js
-
-// ==============================
-// 📌 Función para publicar eventos en MQTT
-// ==============================
-function publishMQTT(topic, descripcion, usuario) {
-    if (mqttCloud && mqttCloud.connected) {
-        mqttCloud.publish(`petbio/${topic}`, JSON.stringify({
-            usuario,
-            descripcion,
-            fecha: new Date().toISOString()
-        }), { qos: 1 });
-        console.log(`🔹 MQTT publicado: ${topic} -> ${descripcion}`);
-    }
-}
 
 // Obtener saludo dinámico según hora
 function obtenerSaludo() {
@@ -44,6 +29,7 @@ async function saludoDelUsuario(msg, sessionFile, session, usuarioId = null) {
     // Determinar si toca saludo largo o corto
     let mostrarSaludoLargo = false;
     if (!session.lastGreeted || session.lastGreeted !== hoy) {
+        // Solo 1 vez por semana damos el saludo largo
         mostrarSaludoLargo = (!session.lastWeek || session.lastWeek !== semana);
     }
 
@@ -62,7 +48,6 @@ async function saludoDelUsuario(msg, sessionFile, session, usuarioId = null) {
 
         try {
             await msg.reply(utils.justificarTexto(saludo, 40));
-            publishMQTT("saludo_usuario", "Saludo inicial enviado", msg.from);
         } catch (err) {
             console.error("Error enviando saludo:", err);
         }
@@ -90,7 +75,6 @@ async function saludoDelUsuario(msg, sessionFile, session, usuarioId = null) {
     if (session.type === 'post_registro' && usuarioId) {
         try {
             iniciarMenu(usuarioId);
-            publishMQTT("post_registro", "Menú post-registro iniciado", usuarioId);
         } catch (err) {
             console.error("Error iniciando menú post-registro:", err);
         }

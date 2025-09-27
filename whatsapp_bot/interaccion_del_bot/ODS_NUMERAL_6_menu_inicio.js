@@ -1,7 +1,7 @@
 // ODS_NUMERAL_6_menu_inicio.js
 const fs = require('fs');
 const path = require('path');
-const { mqttCloud } = require('./config.js'); // cliente CloudMQTT
+const { mqttCloud } = require('../config.js'); // cliente CloudMQTT
 const menuIdentidadCorporativa = require('./menu_identidad_corporativa');
 
 /**

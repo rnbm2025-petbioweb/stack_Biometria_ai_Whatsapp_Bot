@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const utils = require('./utils_bot');
-const { mqttCloud } = require('../config.js'); // mismo cliente que menu_inicio.js
+const { mqttCloud } = require('../config.js');
 
 const MENU_SERVICIOS = `
 📦 *Servicios PETBIO*
@@ -84,7 +84,7 @@ function publishMQTT(topic, descripcion, usuario) {
             descripcion,
             fecha: new Date().toISOString()
         }), { qos: 1 });
-        console.log(`🔹 MQTT publicado: ${topic} -> ${descripcion}`);
+        console.log(`[${new Date().toLocaleTimeString()}] 🔹 MQTT publicado: ${topic} -> ${descripcion}`);
     }
 }
 
