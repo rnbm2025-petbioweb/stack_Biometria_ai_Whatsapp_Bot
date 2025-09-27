@@ -70,11 +70,18 @@ RUN npm ci --only=production \
  && npm cache clean --force
 
 
-
-# ⚡ Cambio clave: usamos npm install en lugar de npm ci para Render
+# ==========================
+# Instalar dependencias
+# ==========================
 RUN npm install --production \
  && npm install puppeteer@19.11.1 pdfkit --save \
  && npm cache clean --force
+
+
+# ⚡ Cambio clave: usamos npm install en lugar de npm ci para Render
+#RUN npm install --production \
+# && npm install puppeteer@19.11.1 pdfkit --save \
+# && npm cache clean --force
 
 # ==========================
 # Variables de entorno
