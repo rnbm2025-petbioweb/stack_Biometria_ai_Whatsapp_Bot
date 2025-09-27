@@ -1,10 +1,15 @@
 // tarifas_menu.js
-const fs = require('fs');
-const path = require('path');
+const mqtt = require('mqtt');
 
-// Función local para "justificar" texto (opcional, simple wrap)
+// ------------------ CONFIGURACIÓN MQTT ------------------
+const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://localhost:1883';
+const client = mqtt.connect(MQTT_BROKER, {
+    clientId: 'tarifas_bot_' + Math.random().toString(16).substr(2, 8),
+    clean: true
+});
+
+// ------------------ MENÚ DE TARIFAS ------------------
 function justificarTexto(texto, ancho = 40) {
-    // Divide el texto en líneas de longitud <= ancho
     const palabras = texto.split(' ');
     const lineas = [];
     let linea = '';
@@ -22,40 +27,25 @@ function justificarTexto(texto, ancho = 40) {
 }
 
 const MENU_TARIFAS = `
-💲 *Tarifas PETBIO*
+💲 *Tarifas PETBIO* 🐾
 
 📌 Trimestral → $25.000 para cuidadores.
 📌 Semestral → desde 17.000 a 13.000 por mascota.
 📌 Anual → desde 30.000 a 23.000 por mascota.
 
 ✅ Escoge el plan según el rango de mascotas (1 a 500).
-✅ Precios incluyen beneficios de trazabilidad, QR y servicios digitales.
+✅ Precios incluyen trazabilidad, QR y servicios digitales.
 
-🌐 Consulta el simulador financiero aquí:
+🌐 Consulta el simulador financiero:
 https://petbio.siac2025.com/finanzas_suscripcion.php
 
 📌 Suscriptores:
-- 3 meses → 15% de descuento sobre tarifa base.
+- 3 meses → 15% de descuento.
 - 6 meses → 25% de descuento.
 - 1 año → 35% de descuento.
 `;
 
-async function menuTarifas(msg, sessionFile, session) {
-    // Mostrar menú principal de tarifas
-    await msg.reply(justificarTexto(MENU_TARIFAS, 40));
-
-    // Actualizar sesión (opcional)
-    session.type = 'menu_tarifas';
-    fs.writeFileSync(sessionFile, JSON.stringify(session, null, 2));
-
-    // Mensaje adicional de instrucciones
-    await msg.reply(justificarTexto(
-        "📌 Escribe *menu* para volver al inicio.\n" +
-        "💡 Para suscribirte y aplicar descuento, responde con *suscripcion* seguido del período: 3, 6 o 12 meses.", 40
-    ));
-}
-
-// Función para calcular tarifa con descuento según período
+// ------------------ FUNCIONES ------------------
 function calcularDescuento(precioBase, meses) {
     let descuento = 0;
     if (meses === 3) descuento = 0.15;
@@ -65,4 +55,44 @@ function calcularDescuento(precioBase, meses) {
     return precioBase - (precioBase * descuento);
 }
 
-module.exports = { menuTarifas, calcularDescuento };
+function enviarMensaje(usuarioId, mensaje) {
+    const topic = `petbio/usuario/${usuarioId}`;
+    client.publish(topic, justificarTexto(mensaje, 40));
+}
+
+function procesarTarifas(usuarioId, payload) {
+    if (payload.accion === 'mostrar') {
+        enviarMensaje(usuarioId, MENU_TARIFAS);
+        enviarMensaje(usuarioId,
+            "📌 Escribe *menu* para volver al inicio.\n" +
+            "💡 Para suscribirte y aplicar descuento, responde con *suscripcion* seguido del período: 3, 6 o 12 meses."
+        );
+    } else if (payload.accion === 'calcular') {
+        const { precioBase, meses } = payload;
+        const precioConDescuento = calcularDescuento(precioBase, meses);
+        enviarMensaje(usuarioId,
+            `💳 El precio con descuento para ${meses} meses es: $${precioConDescuento.toLocaleString()}`
+        );
+    }
+}
+
+// ------------------ SUSCRIPCIÓN MQTT ------------------
+client.on('connect', () => {
+    console.log('✅ Bot de tarifas conectado al broker MQTT');
+    client.subscribe('petbio/bot/tarifas', { qos: 1 });
+});
+
+client.on('message', (topic, message) => {
+    if (topic === 'petbio/bot/tarifas') {
+        try {
+            const payload = JSON.parse(message.toString());
+            if (!payload.usuarioId) return;
+            procesarTarifas(payload.usuarioId, payload);
+        } catch (err) {
+            console.error('❌ Error al procesar mensaje de tarifas:', err.message);
+        }
+    }
+});
+
+// ------------------ EXPORTS ------------------
+module.exports = { calcularDescuento };

@@ -1,11 +1,11 @@
-// integrador_petbio_final.js
+// integrador_de_menu_router_bot.js
 // ==================================================
 // Integrador completo PETBIO: usuarios, mascotas, menú y sesiones
 // ==================================================
 
 const fs = require('fs');
 const path = require('path');
-const mqtt = require('mqtt');
+const { mqttCloud /*, mqttLocalDev, mqttLocalProd */ } = require('../config');
 const saludoDelUsuario = require('./saludo_del_usuario');
 
 // Funciones centralizadas
@@ -18,39 +18,53 @@ const { iniciarRegistroUsuario } = require('./registro_usuario_bot');
 const SESSIONS_DIR = path.join(__dirname, 'sessions');
 if (!fs.existsSync(SESSIONS_DIR)) fs.mkdirSync(SESSIONS_DIR, { recursive: true });
 
-function getSessionFile(userId){ return path.join(SESSIONS_DIR, `session_${userId}.json`); }
-function cargarSesion(userId){ 
-    const f = getSessionFile(userId); 
-    return fs.existsSync(f)? JSON.parse(fs.readFileSync(f)) : null; 
+function getSessionFile(userId) { return path.join(SESSIONS_DIR, `session_${userId}.json`); }
+function cargarSesion(userId) {
+    const f = getSessionFile(userId);
+    return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f)) : null;
 }
-function guardarSesion(userId, session){ fs.writeFileSync(getSessionFile(userId), JSON.stringify(session)); }
+function guardarSesion(userId, session) { fs.writeFileSync(getSessionFile(userId), JSON.stringify(session)); }
 
 // =====================
-// Configuración MQTT
+// 📶 Conexión MQTT
 // =====================
-const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://mosquitto-stack:1883';
-const MQTT_USER = process.env.MQTT_USER || 'integrador';
-const MQTT_PASS = process.env.MQTT_PASS || 'petbio2025!';
-const MQTT_CLIENT = mqtt.connect(MQTT_BROKER, { username: MQTT_USER, password: MQTT_PASS });
-MQTT_CLIENT.on('connect', () => console.log(`✅ Conectado a MQTT Broker`));
+/*
+[mqttLocalDev, mqttLocalProd].forEach((client, index) => {
+    const name = index === 0 ? 'Mosquitto DEV' : 'Mosquitto PROD';
+    client.on('connect', () => console.log(`✅ Conectado a ${name}`));
+    client.on('error', (err) => {
+        console.error(`❌ Error ${name}:`, err.message);
+        client.end(true);
+    });
+});
+*/
+
+// 👉 Solo usamos CloudMQTT
+if (mqttCloud) {
+    mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
+    mqttCloud.on('error', (err) => {
+        console.error('❌ Error CloudMQTT:', err.message);
+        mqttCloud.end(true);
+    });
+}
 
 // =====================
 // Router central
 // =====================
-async function router(msg, userId){
-    let session = cargarSesion(userId) || { type:'menu_inicio', step:null, data:{}, id_usuario:userId };
-    const texto = (msg.body||'').trim();
+async function router(msg, userId) {
+    let session = cargarSesion(userId) || { type: 'menu_inicio', step: null, data: {}, id_usuario: userId };
+    const texto = (msg.body || '').trim();
     const lc = texto.toLowerCase();
 
     // Comando global: cancelar o volver al menú
-    if(lc === 'menu'){
+    if (lc === 'menu') {
         session.type = 'menu_inicio';
         session.step = null;
         session.data = {};
         guardarSesion(userId, session);
     }
-    if(lc === 'cancelar' || lc === 'cancel'){
-        try { fs.unlinkSync(getSessionFile(userId)); } catch(e){ }
+    if (lc === 'cancelar' || lc === 'cancel') {
+        try { fs.unlinkSync(getSessionFile(userId)); } catch (e) { }
         await msg.reply('✅ Operación cancelada. Volviendo al menú principal...');
         session.type = 'menu_inicio';
         session.step = null;
@@ -59,13 +73,12 @@ async function router(msg, userId){
         return;
     }
 
-    try{
-        switch(session.type){
+    try {
+        switch (session.type) {
             // ===================== Menú principal =====================
             case 'menu_inicio':
             case 'esperando_opcion_menu':
                 await saludoDelUsuario(msg, getSessionFile(userId), session);
-                break;
 
                 await msg.reply(
                     '📌 Selecciona opción del menú:\n' +
@@ -75,13 +88,13 @@ async function router(msg, userId){
                 );
 
                 // Determinar flujo según texto
-                if(texto === '1' || texto.includes('usuario')){
+                if (texto === '1' || texto.includes('usuario')) {
                     session.type = 'registro_usuario';
                     session.step = 'username';
-                } else if(texto === '2' || texto.includes('mascota')){
+                } else if (texto === '2' || texto.includes('mascota')) {
                     session.type = 'registro_mascota';
                     session.step = 'nombre';
-                } else if(texto === '3' || texto.includes('suscribirse')){
+                } else if (texto === '3' || texto.includes('suscribirse')) {
                     session.type = 'suscripcion';
                 }
                 break;
@@ -93,7 +106,7 @@ async function router(msg, userId){
 
             // ===================== Registro de mascota =====================
             case 'registro_mascota':
-                await iniciarRegistroMascota(msg, session, getSessionFile(userId));
+                await iniciarRegistroMascota(msg, session, getSessionFile(userId), mqttCloud);
                 break;
 
             // ===================== Suscripción (placeholder) =====================
@@ -116,7 +129,7 @@ async function router(msg, userId){
 
         guardarSesion(userId, session);
 
-    } catch(e){
+    } catch (e) {
         console.error('❌ Error en router integrador:', e);
         await msg.reply('❌ Error interno. Escribe *menu* para reiniciar.');
         session.type = 'menu_inicio';
@@ -127,18 +140,20 @@ async function router(msg, userId){
 }
 
 // =====================
-// Suscripción de usuario (puede llamarse desde router si se implementa) =====================
-async function iniciarSuscripcionUsuario(msg, session){
-    try{
+// Suscripción de usuario (puede llamarse desde router si se implementa)
+// =====================
+async function iniciarSuscripcionUsuario(msg, session) {
+    try {
         await msg.reply(`💳 Suscripción PETBIO 💳\n$3 USD/mes. Responde SUSCRIBIRME para activar.`);
         session.type = 'suscripcion';
         session.step = 'confirmar';
         guardarSesion(session.id_usuario, session);
-    } catch(e){ console.error(e); }
+    } catch (e) { console.error(e); }
 }
 
 // =====================
-// Exportamos funciones =====================
+// Exportamos funciones
+// =====================
 module.exports = {
     router,
     iniciarRegistroMascota,

@@ -5,18 +5,17 @@
 // ✅ Funcionalidades:
 // 1. Verifica si un usuario tiene suscripción activa en MySQL
 // 2. Controla accesos gratuitos limitados a módulos (historia clínica, citas, etc.)
-// 3. Publica mensajes vía MQTT para notificar al usuario
+// 3. Publica mensajes vía MQTT (solo mqttCloud en Render)
 // 4. Flujo de WhatsApp para mostrar menú de suscripciones
 // 5. Guardado de estado de sesión compatible con index.js
 
-const mqtt = require('mqtt');
-const mysql = require('mysql2/promise');
 const fs = require('fs');
-const path = require('path');
+const mysql = require('mysql2/promise');
 const utils = require('./utils_bot'); // Función justificarTexto para WhatsApp
+const { mqttCloud /*, mqttLocalDev, mqttLocalProd */ } = require('../config');
 
 // =====================
-// Configuración DB y MQTT
+// Configuración DB
 // =====================
 const dbConfig = {
   host: process.env.MYSQL_HOST || 'mysql_petbio_secure',
@@ -26,25 +25,28 @@ const dbConfig = {
   port: Number(process.env.MYSQL_PORT) || 3310
 };
 
-const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://192.168.1.20:1883';
-const MQTT_CLIENT = mqtt.connect(MQTT_BROKER, { 
-  clientId: 'suscripcion_bot_' + Math.random().toString(16).substr(2, 8),
-  clean: true
-});
-
 // =====================
-// Logs MQTT
+// 📶 Conexión MQTT
 // =====================
-MQTT_CLIENT.on('connect', () => {
-  console.log('✅ Suscripciones Bot conectado a Mosquitto');
-  MQTT_CLIENT.subscribe('petbio/bot/acceso_modulo', (err) => {
-    if (!err) console.log('Suscrito a petbio/bot/acceso_modulo');
+/*
+[mqttLocalDev, mqttLocalProd].forEach((client, index) => {
+  const name = index === 0 ? 'Mosquitto DEV' : 'Mosquitto PROD';
+  client.on('connect', () => console.log(`✅ Conectado a ${name}`));
+  client.on('error', (err) => {
+    console.error(`❌ Error ${name}:`, err.message);
+    client.end(true);
   });
 });
+*/
 
-MQTT_CLIENT.on('error', (err) => {
-  console.error('❌ Error MQTT:', err.message);
-});
+// 👉 Solo usamos CloudMQTT
+if (mqttCloud) {
+  mqttCloud.on('connect', () => console.log('✅ Suscripciones Bot conectado a CloudMQTT'));
+  mqttCloud.on('error', (err) => {
+    console.error('❌ Error CloudMQTT:', err.message);
+    mqttCloud.end(true);
+  });
+}
 
 // =====================
 // Contador de intentos por usuario y módulo
@@ -73,8 +75,12 @@ async function verificarSuscripcion(id_usuario) {
 // Publicar mensaje vía MQTT
 // =====================
 function enviarMensaje(usuarioId, mensaje) {
+  if (!mqttCloud || mqttCloud.disconnected) {
+    console.warn('⚠️ MQTT no disponible, mensaje no enviado.');
+    return;
+  }
   const topic = `petbio/usuario/${usuarioId}`;
-  MQTT_CLIENT.publish(topic, mensaje);
+  mqttCloud.publish(topic, mensaje);
 }
 
 // =====================
@@ -98,7 +104,8 @@ async function procesarAcceso(usuarioId, modulo) {
     enviarMensaje(usuarioId, `⚠️ Acceso gratuito ${intentos[usuarioId][modulo]}/3 al módulo de ${modulo}.`);
     return true;
   } else {
-    enviarMensaje(usuarioId,
+    enviarMensaje(
+      usuarioId,
       `❌ Has agotado tus 3 intentos gratuitos del módulo de ${modulo}.\n` +
       `Para seguir disfrutando de todos nuestros servicios (historia clínica, creación de citas, recordatorios, seguimiento de mascotas), por favor suscríbete. 🐾\n` +
       `👉 Ingresa a la sección de Suscripciones para completar tu registro.`
@@ -125,7 +132,7 @@ async function iniciarSuscripciones(msg, session, sessionFile) {
       return msg.reply('✅ Proceso cancelado. Volviendo al menú...');
     }
 
-    switch(step) {
+    switch (step) {
       case 'menu':
         // Tarifas con descuentos
         const tarifaTrimestre = 25;

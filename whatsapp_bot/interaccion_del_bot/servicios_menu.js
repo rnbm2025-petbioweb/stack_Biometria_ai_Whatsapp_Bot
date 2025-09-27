@@ -2,6 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const utils = require('./utils_bot');
+const { mqttCloud } = require('./config.js');
 
 const MENU_SERVICIOS = `
 📦 *Servicios PETBIO*
@@ -19,7 +20,7 @@ const MENU_SERVICIOS = `
 💡 Las tarifas se consultan en la opción 7️⃣ Tarifas del menú.
 `;
 
-async function menuServicios(msg, sessionFile) {
+async function menuServicios(msg, sessionFile = null) {
     await msg.reply(utils.justificarTexto(MENU_SERVICIOS, 40));
 
     // Asegurar directorio de sesión
@@ -27,14 +28,14 @@ async function menuServicios(msg, sessionFile) {
     if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
     const handleOption = async (option) => {
-        switch(option) {
-            case '9': {
-                // Calcular precios con descuento
-                const tarifaBaseTrimestral = 25;
-                const precio6Meses = (tarifaBaseTrimestral * 2 * 0.97).toFixed(2); // 3% descuento
-                const precio12Meses = (tarifaBaseTrimestral * 4 * 0.93).toFixed(2); // 7% descuento
+        try {
+            switch(option) {
+                case '9': {
+                    const tarifaBaseTrimestral = 25;
+                    const precio6Meses = (tarifaBaseTrimestral * 2 * 0.97).toFixed(2); // 3% descuento
+                    const precio12Meses = (tarifaBaseTrimestral * 4 * 0.93).toFixed(2); // 7% descuento
 
-                await msg.reply(utils.justificarTexto(
+                    await msg.reply(utils.justificarTexto(
 `💼 *Suscripción para Cuidadores*
 
 - Trimestral: $${tarifaBaseTrimestral}
@@ -43,15 +44,48 @@ async function menuServicios(msg, sessionFile) {
 
 🌐 Suscríbete aquí: https://petbio.siac2025.com/suscripciones_cuidadores.php
 `, 40));
-                break;
+
+                    publishMQTT("menu_interaccion", "Suscripcion Cuidadores", msg.from);
+                    break;
+                }
+                default:
+                    await msg.reply(utils.justificarTexto("📌 Escribe *menu* para volver al inicio.", 40));
+                    publishMQTT("menu_interaccion", "Opcion no valida Servicios", msg.from);
             }
-            default:
-                // Mensaje informativo para todas las otras opciones
-                await msg.reply(utils.justificarTexto("📌 Escribe *menu* para volver al inicio.", 40));
+
+            // Guardar última interacción en sesión
+            if (sessionFile) {
+                let sessionData = {};
+                if (fs.existsSync(sessionFile)) {
+                    try {
+                        sessionData = JSON.parse(fs.readFileSync(sessionFile));
+                    } catch {}
+                }
+                sessionData.lastActive = Date.now();
+                sessionData.lastMenu = 'Servicios';
+                fs.writeFileSync(sessionFile, JSON.stringify(sessionData, null, 2));
+            }
+
+        } catch (err) {
+            console.error("Error en menuServicios:", err);
         }
     };
 
     return handleOption;
+}
+
+// ==============================
+// Publicar en CloudMQTT
+// ==============================
+function publishMQTT(topic, descripcion, usuario) {
+    if (mqttCloud && mqttCloud.connected) {
+        mqttCloud.publish(`petbio/${topic}`, JSON.stringify({
+            usuario,
+            descripcion,
+            fecha: new Date().toISOString()
+        }), { qos: 1 });
+        console.log(`[${new Date().toLocaleTimeString()}] 🔹 MQTT publicado: ${topic} -> ${descripcion}`);
+    }
 }
 
 module.exports = menuServicios;

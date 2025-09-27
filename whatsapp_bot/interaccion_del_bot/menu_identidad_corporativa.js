@@ -1,5 +1,14 @@
 // menu_identidad_corporativa.js
-async function menuIdentidadCorporativa(msg) {
+const { mqttCloud } = require('./config.js');
+const fs = require('fs');
+const path = require('path');
+
+/**
+ * Menú de Identidad Corporativa PETBIO11
+ * @param {object} msg - Mensaje de WhatsApp
+ * @param {string} [sessionFile] - Archivo de sesión opcional
+ */
+async function menuIdentidadCorporativa(msg, sessionFile = null) {
     const identidad =
         "📖 *Manual de Identidad Corporativa PETBIO11 RNBM*\n\n" +
 
@@ -40,6 +49,36 @@ async function menuIdentidadCorporativa(msg) {
         "✅ *Fin del documento*";
 
     await msg.reply(identidad);
+
+    // Publicar evento en CloudMQTT
+    if (mqttCloud && mqttCloud.connected) {
+        mqttCloud.publish(
+            'petbio/menu_interaccion',
+            JSON.stringify({
+                usuario: msg.from,
+                descripcion: 'Accedió a Identidad Corporativa',
+                fecha: new Date().toISOString()
+            }),
+            { qos: 1 }
+        );
+        console.log(`[${new Date().toLocaleTimeString()}] 🔹 MQTT publicado: Identidad Corporativa -> ${msg.from}`);
+    }
+
+    // Guardar última interacción en sesión (opcional)
+    if (sessionFile) {
+        let sessionData = {};
+        if (fs.existsSync(sessionFile)) {
+            try {
+                sessionData = JSON.parse(fs.readFileSync(sessionFile));
+            } catch {}
+        }
+        sessionData.lastActive = Date.now();
+        sessionData.lastMenu = 'Identidad Corporativa';
+        const sessionDir = path.dirname(sessionFile);
+        if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
+        fs.writeFileSync(sessionFile, JSON.stringify(sessionData, null, 2));
+    }
 }
 
 module.exports = menuIdentidadCorporativa;
+

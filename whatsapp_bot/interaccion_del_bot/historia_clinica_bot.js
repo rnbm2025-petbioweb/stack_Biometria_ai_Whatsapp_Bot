@@ -7,167 +7,213 @@
 const mqtt = require('mqtt');
 const mysql = require('mysql2/promise');
 
+// ==========================
 // Configuración MQTT
-const MQTT_BROKER = 'mqtt://localhost:1883';
+// ==========================
+
+// 🔴 SOLO ACTIVAR UNO SEGÚN EL ENTORNO
+// const MQTT_BROKER = 'mqtt://localhost:1883';              // 🖥️ Local DEV (Mosquitto local)
+// const MQTT_BROKER = 'mqtt://192.168.1.20:1883';           // 🖧 Mosquitto LAN DEV
+const MQTT_BROKER = process.env.MQTT_CLOUD || 'mqtt://duck-01.lmq.cloudamqp.com:1883'; // ☁️ MQTT Cloud PROD
+
 const client = mqtt.connect(MQTT_BROKER, {
-    clientId: 'historia_clinica_bot_' + Math.random().toString(16).substr(2, 8),
-    clean: true,
-    connectTimeout: 4000
+  clientId: 'historia_clinica_bot_' + Math.random().toString(16).substr(2, 8),
+  clean: true,
+  connectTimeout: 4000,
+  username: process.env.MQTT_USER || 'usuario_cloud',
+  password: process.env.MQTT_PASS || 'clave_cloud'
 });
 
 client.on('connect', () => {
-    console.log('✅ Historia Clínica Bot conectado a Mosquitto');
+  console.log('✅ Historia Clínica Bot conectado a MQTT');
 });
 
+client.on('error', (err) => {
+  console.error('❌ Error MQTT:', err.message);
+});
+
+// ==========================
 // Configuración DB
+// ==========================
 const dbConfig = {
-    host: 'mysql_petbio_secure',
-    user: 'root',
-    password: 'R00t_Segura_2025!',
-    database: 'db__produccion_petbio_segura_2025',
-    port: 3306
+  host: process.env.MYSQL_HOST || 'mysql_petbio_secure',
+  user: process.env.MYSQL_USER || 'root',
+  password: process.env.MYSQL_PASSWORD || 'R00t_Segura_2025!',
+  database: process.env.MYSQL_DATABASE || 'db__produccion_petbio_segura_2025',
+  port: Number(process.env.MYSQL_PORT) || 3310
 };
 
+// ==========================
 // Contadores de intentos por usuario
+// ==========================
 let intentos = {}; // { usuarioId: { historia: n } }
 
+// ==========================
 // Función para enviar mensaje al usuario
+// ==========================
 function enviarMensaje(usuarioId, mensaje) {
-    const topic = `petbio/usuario/${usuarioId}`;
-    client.publish(topic, mensaje);
+  const topic = `petbio/usuario/${usuarioId}`;
+  client.publish(topic, mensaje);
 }
 
+// ==========================
 // Función para verificar suscripción
+// ==========================
 async function verificarSuscripcion(id_usuario) {
+  try {
     const conn = await mysql.createConnection(dbConfig);
     const [rows] = await conn.execute(
-        `SELECT id FROM pago_suscripcion WHERE id_usuario = ? ORDER BY id DESC LIMIT 1`,
-        [id_usuario]
+      `SELECT id FROM pago_suscripcion WHERE id_usuario = ? ORDER BY id DESC LIMIT 1`,
+      [id_usuario]
     );
     await conn.end();
     return rows.length > 0;
+  } catch (err) {
+    console.error('❌ Error MySQL:', err.message);
+    return false;
+  }
 }
 
+// ==========================
 // Validar acceso al módulo con intentos gratuitos
+// ==========================
 async function validarAcceso(usuarioId, modulo) {
-    const suscrito = await verificarSuscripcion(usuarioId);
-    if (suscrito) return true;
+  const suscrito = await verificarSuscripcion(usuarioId);
+  if (suscrito) return true;
 
-    if (!intentos[usuarioId]) intentos[usuarioId] = { historia: 0 };
-    if (intentos[usuarioId][modulo] < 3) {
-        intentos[usuarioId][modulo]++;
-        const restantes = 3 - intentos[usuarioId][modulo];
-        enviarMensaje(usuarioId,
-            `⚠️ Tienes ${restantes} intento(s) restante(s) para consultar Historias Clínicas.\n` +
-            `PETBIO es tu sistema integral para el cuidado de tus mascotas 🐾.\n` +
-            `💡 Para acceso ilimitado y beneficios exclusivos, suscríbete ahora. Revisa tarifas en la opción 7 del menú.`
-        );
-        return true;
-    } else {
-        enviarMensaje(usuarioId,
-            `❌ Has agotado tus 3 intentos gratuitos para consultar Historias Clínicas.\n` +
-            `Para seguir disfrutando de todos los servicios PETBIO, suscríbete 🐾.\n` +
-            `💳 Consulta nuestras tarifas en la opción 7 del menú.`
-        );
-        return false;
-    }
+  if (!intentos[usuarioId]) intentos[usuarioId] = { historia: 0 };
+
+  if (intentos[usuarioId][modulo] < 3) {
+    intentos[usuarioId][modulo]++;
+    const restantes = 3 - intentos[usuarioId][modulo];
+    enviarMensaje(usuarioId,
+      `⚠️ Acceso gratuito ${intentos[usuarioId][modulo]}/3 para *Historia Clínica*.\n` +
+      `👉 Te quedan ${restantes} intentos.\n\n` +
+      `💡 Suscríbete para acceso ilimitado y beneficios exclusivos. Revisa tarifas en la opción 7 del menú.`
+    );
+    return true;
+  } else {
+    enviarMensaje(usuarioId,
+      `❌ Has agotado tus 3 intentos gratuitos en *Historia Clínica*.\n` +
+      `🐾 Para continuar usando PETBIO, suscríbete ahora.\n` +
+      `💳 Consulta nuestras tarifas en la opción 7 del menú.`
+    );
+    return false;
+  }
 }
 
+// ==========================
 // Obtener mascotas del usuario
+// ==========================
 async function obtenerMascotas(id_usuario) {
-    const conn = await mysql.createConnection(dbConfig);
-    const [mascotas] = await conn.execute(
-        `SELECT id, nombre, apellidos, edad, raza, clase_mascota, ciudad, barrio
-         FROM registro_mascotas WHERE id_usuario = ?`,
-        [id_usuario]
-    );
-    await conn.end();
-    return mascotas;
+  const conn = await mysql.createConnection(dbConfig);
+  const [mascotas] = await conn.execute(
+    `SELECT id, nombre, apellidos, edad, raza, clase_mascota, ciudad, barrio
+     FROM registro_mascotas WHERE id_usuario = ?`,
+    [id_usuario]
+  );
+  await conn.end();
+  return mascotas;
 }
 
+// ==========================
 // Obtener historia clínica de una mascota
+// ==========================
 async function obtenerHistoriaClinica(id_mascota) {
-    const conn = await mysql.createConnection(dbConfig);
-    const [historias] = await conn.execute(
-        `SELECT h.*, a.ruta_archivo, a.tipo AS tipo_archivo
-         FROM historia_clinica h
-         LEFT JOIN archivos_historia_clinica a ON h.id_historia = a.id_historia
-         WHERE h.id_mascota = ?`,
-        [id_mascota]
-    );
-    await conn.end();
-    return historias;
+  const conn = await mysql.createConnection(dbConfig);
+  const [historias] = await conn.execute(
+    `SELECT h.*, a.ruta_archivo, a.tipo AS tipo_archivo
+     FROM historia_clinica h
+     LEFT JOIN archivos_historia_clinica a ON h.id_historia = a.id_historia
+     WHERE h.id_mascota = ?`,
+    [id_mascota]
+  );
+  await conn.end();
+  return historias;
 }
 
+// ==========================
 // Procesar solicitud de historia clínica
+// ==========================
 async function procesarSolicitud(usuarioId) {
-    if (!(await validarAcceso(usuarioId, 'historia'))) return;
+  if (!(await validarAcceso(usuarioId, 'historia'))) return;
 
-    const mascotas = await obtenerMascotas(usuarioId);
-    if (mascotas.length === 0) {
-        enviarMensaje(usuarioId, '❌ No se encontraron mascotas registradas.');
-        return;
+  const mascotas = await obtenerMascotas(usuarioId);
+  if (mascotas.length === 0) {
+    enviarMensaje(usuarioId, '❌ No se encontraron mascotas registradas.');
+    return;
+  }
+
+  let mensaje = '🐾 *Tus mascotas registradas:*\n';
+  mascotas.forEach((m, idx) => {
+    mensaje += `${idx + 1}. ${m.nombre} ${m.apellidos} - ${m.clase_mascota}\n`;
+  });
+  mensaje += '\n👉 Responde con el número de la mascota para ver su historia clínica.';
+  enviarMensaje(usuarioId, mensaje);
+
+  const topicEntrada = `petbio/entrada/${usuarioId}`;
+  client.subscribe(topicEntrada, (err) => {
+    if (!err) console.log(`✅ Escuchando elección de mascota para usuario ${usuarioId}`);
+  });
+
+  client.once('message', async (topic, message) => {
+    if (topic !== topicEntrada) return;
+
+    const opcion = parseInt(message.toString().trim());
+    if (isNaN(opcion) || opcion < 1 || opcion > mascotas.length) {
+      enviarMensaje(usuarioId, '❌ Opción inválida. Por favor responde con el número correcto.');
+      return;
     }
 
-    let mensaje = '🐾 Tus mascotas registradas:\n';
-    mascotas.forEach((m, idx) => {
-        mensaje += `${idx + 1}. ${m.nombre} ${m.apellidos} - ${m.clase_mascota}\n`;
-    });
-    mensaje += '\nResponde con el número de la mascota para ver su historia clínica.';
-    enviarMensaje(usuarioId, mensaje);
+    const mascotaSeleccionada = mascotas[opcion - 1];
+    const historias = await obtenerHistoriaClinica(mascotaSeleccionada.id);
 
-    const topicEntrada = `petbio/entrada/${usuarioId}`;
-    client.subscribe(topicEntrada, (err) => {
-        if (!err) console.log(`✅ Escuchando elección de mascota para usuario ${usuarioId}`);
-    });
+    if (historias.length === 0) {
+      enviarMensaje(usuarioId, `❌ No hay historia clínica para ${mascotaSeleccionada.nombre}.`);
+      return;
+    }
 
-    client.once('message', async (topic, message) => {
-        if (topic !== topicEntrada) return;
+    for (let h of historias) {
+      let msgHistorial = `🩺 *Historia Clínica de ${mascotaSeleccionada.nombre}:*\n`;
+      msgHistorial += `⚕️ Condición: ${h.id_condicion}\n`;
+      msgHistorial += `📝 Motivo: ${h.motivo_consulta}\n`;
+      msgHistorial += `🧪 Diagnóstico: ${h.diagnostico}\n`;
+      msgHistorial += `💊 Tratamiento: ${h.tratamiento || 'No registrado'}\n`;
+      msgHistorial += `📌 Observaciones: ${h.observaciones || 'Ninguna'}\n`;
+      enviarMensaje(usuarioId, msgHistorial);
 
-        const opcion = parseInt(message.toString().trim());
-        if (isNaN(opcion) || opcion < 1 || opcion > mascotas.length) {
-            enviarMensaje(usuarioId, '❌ Opción inválida. Por favor responde con el número correcto.');
-            return;
-        }
+      if (h.ruta_archivo) {
+        enviarMensaje(usuarioId, `📎 Archivo (${h.tipo_archivo}): ${h.ruta_archivo}`);
+      }
+    }
 
-        const mascotaSeleccionada = mascotas[opcion - 1];
-        const historias = await obtenerHistoriaClinica(mascotaSeleccionada.id);
-
-        if (historias.length === 0) {
-            enviarMensaje(usuarioId, `❌ No hay historia clínica para ${mascotaSeleccionada.nombre}.`);
-            return;
-        }
-
-        for (let h of historias) {
-            let msgHistorial = `🩺 Historia Clínica de ${mascotaSeleccionada.nombre}:\n`;
-            msgHistorial += `⚕️ Condición: ${h.id_condicion}\n`;
-            msgHistorial += `📝 Motivo: ${h.motivo_consulta}\n`;
-            msgHistorial += `🧪 Diagnóstico: ${h.diagnostico}\n`;
-            msgHistorial += `💊 Tratamiento: ${h.tratamiento || 'No registrado'}\n`;
-            msgHistorial += `📌 Observaciones: ${h.observaciones || 'Ninguna'}\n`;
-            enviarMensaje(usuarioId, msgHistorial);
-
-            if (h.ruta_archivo) {
-                enviarMensaje(usuarioId, `📎 Archivo (${h.tipo_archivo}): ${h.ruta_archivo}`);
-            }
-        }
-
-        // Volver a menú principal
-        const menuBot = require('./menu_luego_de_registro_de_usuario');
-        menuBot.iniciarMenu(usuarioId);
-    });
+    // Volver a menú principal
+    try {
+      const menuBot = require('./menu_luego_de_registro_de_usuario');
+      menuBot.iniciarMenu(usuarioId);
+    } catch (err) {
+      console.error('❌ Error cargando menú principal:', err.message);
+    }
+  });
 }
 
+// ==========================
 // Suscribirse al topic principal
+// ==========================
 const topicSolicitud = 'petbio/bot/historia_clinica';
 client.subscribe(topicSolicitud, (err) => {
-    if (!err) console.log(`✅ Suscrito al topic ${topicSolicitud}`);
+  if (!err) console.log(`✅ Suscrito al topic ${topicSolicitud}`);
 });
 
 client.on('message', (topic, message) => {
-    if (topic === topicSolicitud) {
-        const payload = JSON.parse(message.toString());
-        const usuarioId = payload.usuarioId;
-        procesarSolicitud(usuarioId);
+  if (topic === topicSolicitud) {
+    try {
+      const payload = JSON.parse(message.toString());
+      const usuarioId = payload.usuarioId;
+      procesarSolicitud(usuarioId);
+    } catch (err) {
+      console.error('❌ Error procesando payload:', err.message);
     }
+  }
 });
+
