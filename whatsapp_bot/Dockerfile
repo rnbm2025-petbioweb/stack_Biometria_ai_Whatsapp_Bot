@@ -85,10 +85,10 @@ WORKDIR /usr/src/app
 # ==========================
 # Copiar archivos de dependencias
 # ==========================
-COPY ./package*.json /usr/src/app/
+COPY ./whatsapp_bot/package*.json /usr/src/app/
 
 # Verificar que se copiaron correctamente
-RUN ls -l /usr/src/app
+RUN ls -l /usr/src/app/
 
 # ==========================
 # Instalar dependencias en modo producción
