@@ -1,5 +1,5 @@
 // menu_identidad_corporativa.js
-const { mqttCloud } = require('./config.js');
+const { mqttCloud } = require('../config.js');
 const fs = require('fs');
 const path = require('path');
 
