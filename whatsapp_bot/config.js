@@ -1,7 +1,7 @@
 require('dotenv').config();
 const mysql = require('mysql2/promise');
-//const mqtt = require('mqtt');
-const { mqttCloud } = require('./config');
+const mqtt = require('mqtt');
+//const { mqttCloud } = require('./config');
 const { Pool } = require('pg');
 
 // ===============================
