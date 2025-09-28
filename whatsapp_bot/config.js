@@ -1,7 +1,7 @@
 require('dotenv').config();
 const mysql = require('mysql2/promise');
 //const mqtt = require('mqtt');
-//const { mqttCloud } = require('./config');
+const { mqttCloud } = require('./config');
 const { Pool } = require('pg');
 
 // ===============================
@@ -36,8 +36,7 @@ const mqttCloud = mqtt.connect(
     password: process.env.MQTT_CLOUD_PASS || 'flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L',
     reconnectPeriod: 5000,
   }
-);  
-
+);
 mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
 mqttCloud.on('error', (err) => console.error('❌ Error CloudMQTT:', err.message));
 /*
