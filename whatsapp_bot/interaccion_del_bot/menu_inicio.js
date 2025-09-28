@@ -34,6 +34,25 @@ const MENU_TEXT = `
 // ==============================
 // 🎯 Función principal
 // ==============================
+
+async function menuInicio(msg, sessionFile, session) {
+    console.log("📁 sessionFile recibido en menuInicio:", sessionFile);  // 👈 Agregado aquí
+
+    session.type = session.type || 'menu_inicio';
+    session.step = session.step || null;
+    session.data = session.data || {};
+    session.lastActive = Date.now();
+    session.lastGreeted = session.lastGreeted || false;
+
+    // Guardar sesión actualizada
+    if (sessionFile && typeof sessionFile === "string") {
+        fs.writeFileSync(sessionFile, JSON.stringify(session, null, 2));
+    } else {
+        console.error("⚠️ sessionFile es inválido en menuInicio:", sessionFile);
+    }
+
+
+/*
 async function menuInicio(msg, sessionFile, session) {
     session.type = session.type || 'menu_inicio';
     session.step = session.step || null;
@@ -42,7 +61,16 @@ async function menuInicio(msg, sessionFile, session) {
     session.lastGreeted = session.lastGreeted || false;
 
     // Guardar sesión actualizada
-    fs.writeFileSync(sessionFile, JSON.stringify(session, null, 2));
+//    fs.writeFileSync(sessionFile, JSON.stringify(session, null, 2));
+
+// Guardar sesión actualizada ✅ con validación
+if (sessionFile && typeof sessionFile === "string") {
+  fs.writeFileSync(sessionFile, JSON.stringify(session, null, 2));
+} else {
+  console.error("⚠️ sessionFile es inválido en menuInicio:", sessionFile);
+}
+*/
+
 
     // Mostrar menú principal
     await msg.reply(utils.justificarTexto(MENU_TEXT, 42));
