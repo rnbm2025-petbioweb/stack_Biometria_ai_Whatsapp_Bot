@@ -27,8 +27,7 @@ async function getMySQLConnection() {
 // ===============================
 // MQTT - CloudMQTT (Render / Producción)
 // ===============================
-
-
+/*
 const mqttCloud = mqtt.connect(
   process.env.MQTT_CLOUD_BROKER || 'mqtt://duck-01.lmq.cloudamqp.com:1883',
   {
@@ -40,6 +39,44 @@ const mqttCloud = mqtt.connect(
 );
 mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
 mqttCloud.on('error', (err) => console.error('❌ Error CloudMQTT:', err.message));
+*/
+
+// ===============================
+// MQTT - CloudMQTT (Render / Producción)
+// ===============================
+
+
+//AGREGAMOS DEPURACION DE MQTT.CLOUD
+console.log("🔑 MQTT Config -> Broker:", process.env.MQTT_CLOUD_BROKER);
+console.log("🔑 MQTT Config -> User:", process.env.MQTT_CLOUD_USER);
+console.log("🔑 MQTT Config -> Pass:", process.env.MQTT_CLOUD_PASS ? "✅ Cargada" : "❌ No definida");
+
+
+/*
+const mqttCloud = mqtt.connect(
+  process.env.MQTT_CLOUD_BROKER || 'mqtt://duck-01.lmq.cloudamqp.com:1883',
+  {
+    username: process.env.MQTT_CLOUD_USER || 'xdagoqsj:xdagoqsj',
+    password: process.env.MQTT_CLOUD_PASS || 'flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L',
+    reconnectPeriod: 5000,
+  }
+);
+*/
+
+const mqttCloud = mqtt.connect(
+  process.env.MQTT_CLOUD_BROKER || 'mqtt://duck-01.lmq.cloudamqp.com:1883',
+  {
+    username: process.env.MQTT_CLOUD_USER,
+    password: process.env.MQTT_CLOUD_PASS,
+    reconnectPeriod: 5000,
+  }
+);
+
+mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
+mqttCloud.on('error', (err) => console.error('❌ Error CloudMQTT:', err.message));
+
+
+
 /*
 
 // ===============================
