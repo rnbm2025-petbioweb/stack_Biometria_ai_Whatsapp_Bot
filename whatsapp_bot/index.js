@@ -68,8 +68,20 @@ if (mqttCloud) {
 
 
 // ------------------ 🤖 Cliente WhatsApp ------------------
+/*
+
 const whatsappClient = new Client({
   puppeteer: { headless: true, args: ['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage'] },
+  authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' })
+});
+*/
+
+const whatsappClient = new Client({
+  puppeteer: {
+    headless: true,
+    executablePath: '/usr/bin/chromium', // 🔹 usa el Chromium del sistema
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+  },
   authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' })
 });
 
