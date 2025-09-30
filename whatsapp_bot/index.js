@@ -8,27 +8,60 @@ const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
-//console.log("🔑 Supabase Key cargada:", supabaseKey ? "✅ Sí" : "❌ No");
 
 // ------------------ 🌐 Configuración Supabase ------------------
 const supabaseUrl = 'https://jbsxvonnrahhfffeacdy.supabase.co';
-const supabaseKey = process.env.SUPABASE_KEY;
+const supabaseKey = process.env.SUPABASE_KEY; // 🔹 usar variable de entorno
 const supabase = createClient(supabaseUrl, supabaseKey);
 console.log("🔑 Supabase Key cargada:", supabaseKey ? "✅ Sí" : "❌ No");
 
 // ------------------ 📡 Configuración MQTT ------------------
 const { mqttCloud, mqttLocalDev, mqttLocalProd } = require('./config');
 
-// ------------------ 🤖 Módulos propios ------------------
-const saludoDelUsuario = require('./interaccion_del_bot/saludo_del_usuario');
-const menuInicioModule = require('./interaccion_del_bot/menu_inicio');
-const { iniciarRegistroMascota } = require('./interaccion_del_bot/registro_mascotas_bot');
-const { iniciarRegistroUsuario } = require('./interaccion_del_bot/registro_usuario_bot');
-const { iniciarSuscripciones } = require('./interaccion_del_bot/suscripciones_cuidadores_bot');
-const historiaClinicaBot = require('./interaccion_del_bot/historia_clinica_bot');
-const crearCitaBot = require('./interaccion_del_bot/crear_cita_bot');
+// COMENTADO por Render, ya que DEV/PROD locales pueden desconectarse
+/*
+// Conexión a todos los brokers (Cloud y Local)
+[mqttCloud, mqttLocalDev, mqttLocalProd].forEach((client, index) => {
+  const name = index === 0 ? 'CloudMQTT' : index === 1 ? 'Mosquitto DEV' : 'Mosquitto PROD';
+  client.on('connect', () => console.log(`✅ Conectado a ${name}`));
+  client.on('error', (err) => {
+    console.error(`❌ Error ${name}:`, err.message);
+    client.end(true);
+  });
+});
+*/
 
-// ------------------ 🌐 Healthcheck ------------------
+// Solo usar CloudMQTT por ahora
+if (mqttCloud) {
+  mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
+  mqttCloud.on('error', (err) => {
+    console.error('❌ Error CloudMQTT:', err.message);
+    mqttCloud.end(true);
+  });
+}
+
+// Para habilitar MQTT Local (descomentar cuando el stack local esté disponible)
+/*
+if (mqttLocalProd) {
+  mqttLocalProd.on('connect', () => console.log('✅ Conectado a Mosquitto PROD'));
+  mqttLocalProd.on('error', (err) => {
+    console.error('❌ Error Mosquitto PROD:', err.message);
+    mqttLocalProd.end(true);
+  });
+}
+*/
+
+// ------------------ 🤖 Cliente WhatsApp ------------------
+const whatsappClient = new Client({
+  puppeteer: {
+    headless: true,
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH, // 🔹 usa ruta de render.yaml
+    args: ['--no-sandbox', '--disable-setuid-sandbox','--disable-dev-shm-usage']
+  },
+  authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' })
+});
+
+// ------------------ 🌐 Express Healthcheck y QR ------------------
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -43,49 +76,6 @@ app.get('/qr', (req, res) => {
 
 app.listen(PORT, () => console.log(`🌐 Healthcheck en puerto ${PORT}`));
 
-/*   // COMENTADO POR QUE SE DESCONECTARON DEL RENDER LOS MOSQUITTO PROD Y DEV
-// ------------------ 📶 Conexión MQTT ------------------
-[mqttCloud, mqttLocalDev, mqttLocalProd].forEach((client, index) => {
-  const name = index === 0 ? 'CloudMQTT' : index === 1 ? 'Mosquitto DEV' : 'Mosquitto PROD';
-  client.on('connect', () => console.log(`✅ Conectado a ${name}`));
-  client.on('error', (err) => {
-    console.error(`❌ Error ${name}:`, err.message);
-    client.end(true);
-  });
-});
-
-*/
-
-// ------------------ 📶 Conexión MQTT ------------------
-// Solo usamos CloudMQTT por ahora
-if (mqttCloud) {
-  mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
-  mqttCloud.on('error', (err) => {
-    console.error('❌ Error CloudMQTT:', err.message);
-    mqttCloud.end(true);
-  });
-}
-
-
-// ------------------ 🤖 Cliente WhatsApp ------------------
-/*
-
-const whatsappClient = new Client({
-  puppeteer: { headless: true, args: ['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage'] },
-  authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' })
-});
-*/
-
-const whatsappClient = new Client({
-  puppeteer: {
-    headless: true,
-//    executablePath: '/usr/bin/chromium', // 🔹 usa el Chromium del sistema
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH, // 🔹 usa la ruta de render.yaml
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-  },
-  authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' })
-});
-
 // ------------------ 📲 Eventos WhatsApp ------------------
 whatsappClient.on('qr', async qr => {
   console.log('📲 Escanea este código QR para vincular tu número:');
@@ -95,7 +85,6 @@ whatsappClient.on('qr', async qr => {
 });
 
 whatsappClient.on('ready', () => console.log('✅ Cliente WhatsApp listo y conectado!'));
-
 whatsappClient.on('disconnected', async reason => {
   console.error('⚠️ Cliente desconectado:', reason);
   try { await whatsappClient.destroy(); } catch (_) {}
@@ -121,6 +110,14 @@ const CMD_MENU = ['menu','inicio','volver','home'];
 const CMD_CANCEL = ['cancelar','salir','stop','terminar','abortar'];
 
 // ------------------ 💬 Flujo principal ------------------
+const saludoDelUsuario = require('./interaccion_del_bot/saludo_del_usuario');
+const menuInicioModule = require('./interaccion_del_bot/menu_inicio');
+const { iniciarRegistroMascota } = require('./interaccion_del_bot/registro_mascotas_bot');
+const { iniciarRegistroUsuario } = require('./interaccion_del_bot/registro_usuario_bot');
+const { iniciarSuscripciones } = require('./interaccion_del_bot/suscripciones_cuidadores_bot');
+const historiaClinicaBot = require('./interaccion_del_bot/historia_clinica_bot');
+const crearCitaBot = require('./interaccion_del_bot/crear_cita_bot');
+
 whatsappClient.on('message', async msg => {
   try {
     let session = await getSession(msg.from);
@@ -161,11 +158,8 @@ whatsappClient.on('message', async msg => {
       case 'registro_usuario':
         await iniciarRegistroUsuario(msg, session, null);
         break;
-/*      case 'registro_mascota':
-        await iniciarRegistroMascota(msg, session, null, mqttLocalProd);
-        break;
-*/
       case 'registro_mascota':
+        // 🔹 Por ahora usamos CloudMQTT
         await iniciarRegistroMascota(msg, session, null, mqttCloud);
         break;
       case 'suscripciones':

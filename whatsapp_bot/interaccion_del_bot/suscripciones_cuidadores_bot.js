@@ -176,6 +176,6 @@ async function iniciarSuscripciones(msg, session, sessionFile) {
 // Exportar funciones
 // =====================
 module.exports = {
-  iniciarSuscripciones, // Para integrarse con index.js y el flujo principal
-  procesarAcceso       // Para controlar intentos y verificar suscripción
+  suscripcionesSuscripciones: iniciarSuscripciones, // Para integrarse con index.js y el flujo principal
+  procesarSuscripcion: procesarAcceso       // Para controlar intentos y verificar suscripción
 };
