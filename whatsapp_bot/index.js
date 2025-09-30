@@ -79,7 +79,8 @@ const whatsappClient = new Client({
 const whatsappClient = new Client({
   puppeteer: {
     headless: true,
-    executablePath: '/usr/bin/chromium', // 🔹 usa el Chromium del sistema
+//    executablePath: '/usr/bin/chromium', // 🔹 usa el Chromium del sistema
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH, // 🔹 usa la ruta de render.yaml
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
   },
   authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' })
