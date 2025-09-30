@@ -1,5 +1,6 @@
 // index.js - PETBIO WhatsApp Bot Integrado 🌐
 // ===============================================
+require('dotenv').config();
 
 const path = require('path');
 const { Client, LocalAuth } = require('whatsapp-web.js');
@@ -7,11 +8,13 @@ const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
+//console.log("🔑 Supabase Key cargada:", supabaseKey ? "✅ Sí" : "❌ No");
 
 // ------------------ 🌐 Configuración Supabase ------------------
 const supabaseUrl = 'https://jbsxvonnrahhfffeacdy.supabase.co';
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
+console.log("🔑 Supabase Key cargada:", supabaseKey ? "✅ Sí" : "❌ No");
 
 // ------------------ 📡 Configuración MQTT ------------------
 const { mqttCloud, mqttLocalDev, mqttLocalProd } = require('./config');

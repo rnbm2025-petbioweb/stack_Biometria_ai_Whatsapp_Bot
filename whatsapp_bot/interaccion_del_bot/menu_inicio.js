@@ -34,50 +34,67 @@ const MENU_TEXT = `
 // ==============================
 // 🎯 Función principal
 // ==============================
-
 async function menuInicio(msg, sessionFile, session) {
-    console.log("📁 sessionFile recibido en menuInicio:", sessionFile);  // 👈 Agregado aquí
+    console.log("📁 sessionFile recibido en menuInicio:", sessionFile);
 
+    // ✅ NUEVO: Validación de sessionFile antes de usarlo
+    if (!sessionFile || typeof sessionFile !== "string") {
+        console.warn("⚠️ sessionFile es null o inválido. Asignando ruta por defecto...");
+        sessionFile = path.join(__dirname, "../.wwebjs_auth/session.json");
+    }
+
+    // ✅ Inicializar datos de sesión
     session.type = session.type || 'menu_inicio';
     session.step = session.step || null;
     session.data = session.data || {};
     session.lastActive = Date.now();
     session.lastGreeted = session.lastGreeted || false;
 
+    // ✅ Crear carpeta de sesión si no existe antes de escribir
+    const sessionDir = path.dirname(sessionFile);
+    if (!fs.existsSync(sessionDir)) {
+        fs.mkdirSync(sessionDir, { recursive: true });
+    }
+
+    // ✅ Guardar sesión actualizada
+    fs.writeFileSync(sessionFile, JSON.stringify(session, null, 2));
+
+    // ==============================
+    // 📜 CÓDIGO ORIGINAL (comentado) — ahora reemplazado por lo anterior
+    // ==============================
+    /*
     // Guardar sesión actualizada
     if (sessionFile && typeof sessionFile === "string") {
         fs.writeFileSync(sessionFile, JSON.stringify(session, null, 2));
     } else {
         console.error("⚠️ sessionFile es inválido en menuInicio:", sessionFile);
     }
+    */
 
+    /*
+    async function menuInicio(msg, sessionFile, session) {
+        session.type = session.type || 'menu_inicio';
+        session.step = session.step || null;
+        session.data = session.data || {};
+        session.lastActive = Date.now();
+        session.lastGreeted = session.lastGreeted || false;
 
-/*
-async function menuInicio(msg, sessionFile, session) {
-    session.type = session.type || 'menu_inicio';
-    session.step = session.step || null;
-    session.data = session.data || {};
-    session.lastActive = Date.now();
-    session.lastGreeted = session.lastGreeted || false;
+        // Guardar sesión actualizada
+        // fs.writeFileSync(sessionFile, JSON.stringify(session, null, 2));
 
-    // Guardar sesión actualizada
-//    fs.writeFileSync(sessionFile, JSON.stringify(session, null, 2));
+        // Guardar sesión actualizada ✅ con validación
+        if (sessionFile && typeof sessionFile === "string") {
+          fs.writeFileSync(sessionFile, JSON.stringify(session, null, 2));
+        } else {
+          console.error("⚠️ sessionFile es inválido en menuInicio:", sessionFile);
+        }
+    }
+    */
 
-// Guardar sesión actualizada ✅ con validación
-if (sessionFile && typeof sessionFile === "string") {
-  fs.writeFileSync(sessionFile, JSON.stringify(session, null, 2));
-} else {
-  console.error("⚠️ sessionFile es inválido en menuInicio:", sessionFile);
-}
-*/
-
-
-    // Mostrar menú principal
+    // ==============================
+    // 📜 Mostrar menú principal
+    // ==============================
     await msg.reply(utils.justificarTexto(MENU_TEXT, 42));
-
-    // Asegurar directorio de sesión
-    const sessionDir = path.dirname(sessionFile);
-    if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
     // ==============================
     // 📌 Opciones disponibles
