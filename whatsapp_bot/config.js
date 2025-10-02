@@ -1,7 +1,7 @@
 require('dotenv').config();
 const mysql = require('mysql2/promise');
 const mqtt = require('mqtt');
-//const { mqttCloud } = require('./config');
+const { mqttCloud } = require('./config');
 const { Pool } = require('pg');
 
 // ===============================
@@ -72,11 +72,11 @@ const mqttCloud = mqtt.connect(
   }
 );*/
 
-const mqttCloud = mqtt.connect(process.env.MQTT_CLOUD_BROKER ||'mqtt://duck-01.lmq.cloudamqp.com:1883',  {
+const mqttCloud = mqtt.connect(process.env.MQTT_CLOUD_BROKER ||'mqtt://duck-01.lmq.cloudamqp.com:8883',  {
     username: process.env.MQTT_CLOUD_USER,
     password: process.env.MQTT_CLOUD_PASS,
     reconnectPeriod: 5000,
-  //  protocol: 'mqtts', // 👈 importante para puerto 8883
+    protocol: 'mqtts', // 👈 importante para puerto 8883
 });
 
 
