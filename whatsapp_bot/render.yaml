@@ -67,7 +67,7 @@ services:
       # MQTT Cloud (CloudMQTT)
       # ===============================
       - key: MQTT_CLOUD_BROKER
-        value: mqtt://duck-01.lmq.cloudamqp.com:8883
+        value: mqtt://duck-01.lmq.cloudamqp.com:1883  #8883
       - key: MQTT_CLOUD_USER
         value: xdagoqsj:xdagoqsj
       - key: MQTT_CLOUD_PASS
@@ -104,3 +104,15 @@ services:
         value: R00t_Segura_2025!
       - key: SUPABASE_DB
         value: postgres
+      - key: SUPABASE_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...   ← tu key real
+
+
+
+envVars:
+  - key: SUPABASE_KEY
+    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+  - key: SUPABASE_DB_URL
+    value: postgresql://postgres:R00t_Segura_2025!@db.jbsxvonnrahhfffeacdy.supabase.co:5432/postgres
+  - key: MQTT_CLOUD_BROKER
+    value: mqtts://duck-01.lmq.cloudamqp.com:8883

@@ -85,7 +85,7 @@ WORKDIR /usr/src/app
 # ==========================
 # Copiar archivos de dependencias
 # ==========================
-COPY ./whatsapp_bot/package*.json /usr/src/app/
+COPY package*.json /usr/src/app/
 
 # Verificar que se copiaron correctamente
 RUN ls -l /usr/src/app/
