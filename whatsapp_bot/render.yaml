@@ -105,7 +105,7 @@ services:
       - key: SUPABASE_DB
         value: postgres
       - key: SUPABASE_KEY
-        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...   ← tu key real
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 
 

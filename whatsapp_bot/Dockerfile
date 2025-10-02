@@ -97,6 +97,14 @@ RUN npm install --omit=dev \
  && npm install puppeteer@19.11.1 pdfkit --save \
  && npm cache clean --force
 
+# Instalar mqtt-cli como dependencia local
+RUN npm install mqtt-cli --save
+
+ENV MQTT_BROKER_HOST=mosquitto-stack
+ENV MQTT_BROKER_PORT=1883
+ENV MQTT_USER=petbio_user
+ENV MQTT_PASS=petbio2025!
+
 
 # ⚡ Cambio clave: usamos npm install en lugar de npm ci para Render
 #RUN npm install --production \
