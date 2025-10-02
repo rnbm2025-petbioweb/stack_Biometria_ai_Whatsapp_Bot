@@ -71,19 +71,57 @@ const mqttCloud = mqtt.connect(
     reconnectPeriod: 5000,
   }
 );*/
-
+//*
 const mqttCloud = mqtt.connect(process.env.MQTT_CLOUD_BROKER ||'mqtt://duck-01.lmq.cloudamqp.com:8883',  {
     username: process.env.MQTT_CLOUD_USER,
     password: process.env.MQTT_CLOUD_PASS,
     reconnectPeriod: 5000,
     protocol: 'mqtts', // 👈 importante para puerto 8883
-});
+}); */
+
+
+
+const mqttCloud = mqtt.connect(
+  process.env.MQTT_CLOUD_BROKER || 'mqtt://duck.lmq.cloudamqp.com:1883',
+  {
+    username: process.env.MQTT_CLOUD_USER || 'xdagoqsj',
+    password: process.env.MQTT_CLOUD_PASS,
+    reconnectPeriod: 5000
+  }
+);
+
+
 
 
 mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
 mqttCloud.on('error', (err) => console.error('❌ Error CloudMQTT:', err.message));
 
-/*
+
+/* const mqttCloud = mqtt.connect(
+  process.env.MQTT_CLOUD_BROKER || 'mqtts://duck.lmq.cloudamqp.com:8883/xdagoqsj', 
+  {
+    username: process.env.MQTT_CLOUD_USER || 'xdagoqsj',
+    password: process.env.MQTT_CLOUD_PASS,
+    reconnectPeriod: 5000
+  }
+);
+Opción 2 — Si necesitas TLS (puerto 8883)
+
+Solo si tu broker sí lo soporta:
+
+
+/* const mqttCloud = mqtt.connect(
+  process.env.MQTT_CLOUD_BROKER || 'mqtts://duck.lmq.cloudamqp.com:8883/xdagoqsj', 
+  {
+    username: process.env.MQTT_CLOUD_USER || 'xdagoqsj',
+    password: process.env.MQTT_CLOUD_PASS,
+    reconnectPeriod: 5000
+  }
+);
+  */
+
+
+
 
 
 // ===============================
