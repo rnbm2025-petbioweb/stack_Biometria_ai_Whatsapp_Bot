@@ -1,7 +1,6 @@
 require('dotenv').config();
 const mysql = require('mysql2/promise');
 const mqtt = require('mqtt');
-const { mqttCloud } = require('./config');
 const { Pool } = require('pg');
 
 // ===============================
@@ -25,107 +24,112 @@ async function getMySQLConnection() {
 }
 
 // ===============================
-// MQTT - CloudMQTT (Render / Producción)
+// MQTT - CloudMQTT (Producción / Render)
 // ===============================
+
+console.log("🔑 MQTT Cloud Config -> Broker:", process.env.MQTT_CLOUD_BROKER);
+console.log("🔑 MQTT Cloud Config -> User:", process.env.MQTT_CLOUD_USER);
+console.log("🔑 MQTT Cloud Config -> Pass:", process.env.MQTT_CLOUD_PASS ? "✅ Cargada" : "❌ No definida");
+
+const mqttCloudUrl = process.env.MQTT_CLOUD_BROKER || 'mqtts://duck-01.lmq.cloudamqp.com:8883';
+const mqttCloudOptions = {
+  username: process.env.MQTT_CLOUD_USER || 'xdagoqsj',
+  password: process.env.MQTT_CLOUD_PASS,
+  reconnectPeriod: 5000, // reconexión automática cada 5s
+  protocol: mqttCloudUrl.startsWith('mqtts') ? 'mqtts' : 'mqtt',
+};
+
+/* 
+// Bloque antiguo comentado: ya no es necesario porque mqtt.js maneja reconexión automática
+const mqttCloud = mqtt.connect(mqttCloudUrl, mqttCloudOptions);
+mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
+mqttCloud.on('error', (err) => console.error('❌ Error CloudMQTT:', err.message));
+*/
+
+const mqttCloud = mqtt.connect(mqttCloudUrl, mqttCloudOptions);
+
+mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
+mqttCloud.on('error', (err) => {
+  console.error('❌ Error CloudMQTT:', err.message);
+  // No cerramos la conexión, mqtt.js intentará reconectar automáticamente
+});
+
+mqttCloud.on('close', () => {
+  console.warn('⚠️ Conexión MQTT cerrada, reconectando en 5s...');
+  setTimeout(() => mqttCloud.reconnect(), 5000); // opcional, puedes confiar solo en reconnectPeriod
+});
+
+
+
 /*
-const mqttCloud = mqtt.connect(
-  process.env.MQTT_CLOUD_BROKER || 'mqtt://duck-01.lmq.cloudamqp.com:1883',
-  {
-    username: process.env.MQTT_CLOUD_USER || 'xdagoqsj:xdagoqsj',
-//    password: process.env.MQTT_CLOUD_PASS || 'flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L',
-    username: process.env.MQTT_CLOUD_USER || 'xdagoqsj', // ❗️sin el prefijo xdagoqsj:
+
+require('dotenv').config();
+const mysql = require('mysql2/promise');
+const mqtt = require('mqtt');
+const { Pool } = require('pg');
+
+// ===============================
+// MYSQL
+// ===============================
+async function getMySQLConnection() {
+  try {
+    const connection = await mysql.createConnection({
+      host: process.env.MYSQL_HOST || 'mysql_petbio_secure',
+      port: process.env.MYSQL_PORT || 3310,
+      user: process.env.MYSQL_USER || 'root',
+      password: process.env.MYSQL_PASSWORD || 'R00t_Segura_2025!',
+      database: process.env.MYSQL_DATABASE || 'db__produccion_petbio_segura_2025',
+    });
+    console.log('✅ Conectado a MySQL');
+    return connection;
+  } catch (err) {
+    console.error('❌ Error MySQL:', err.message);
+    throw err;
+  }
+}
+
+// ===============================
+// MQTT - CloudMQTT (Producción / Render)
+// ===============================
+
+console.log("🔑 MQTT Cloud Config -> Broker:", process.env.MQTT_CLOUD_BROKER);
+console.log("🔑 MQTT Cloud Config -> User:", process.env.MQTT_CLOUD_USER);
+console.log("🔑 MQTT Cloud Config -> Pass:", process.env.MQTT_CLOUD_PASS ? "✅ Cargada" : "❌ No definida");
+
+
+
+const mqttCloudUrl = process.env.MQTT_CLOUD_BROKER || 'mqtts://duck-01.lmq.cloudamqp.com:8883';
+const mqttCloudOptions = {
+  username: process.env.MQTT_CLOUD_USER || 'xdagoqsj',
+  password: process.env.MQTT_CLOUD_PASS,
   reconnectPeriod: 5000,
-  }
-);
-mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
-mqttCloud.on('error', (err) => console.error('❌ Error CloudMQTT:', err.message));
-*/
-
-// ===============================
-// MQTT - CloudMQTT (Render / Producción)
-// ===============================
-
-
-//AGREGAMOS DEPURACION DE MQTT.CLOUD
-console.log("🔑 MQTT Config -> Broker:", process.env.MQTT_CLOUD_BROKER);
-console.log("🔑 MQTT Config -> User:", process.env.MQTT_CLOUD_USER);
-console.log("🔑 MQTT Config -> Pass:", process.env.MQTT_CLOUD_PASS ? "✅ Cargada" : "❌ No definida");
-
-
+  protocol: mqttCloudUrl.startsWith('mqtts') ? 'mqtts' : 'mqtt',
+};
 /*
-const mqttCloud = mqtt.connect(
-  process.env.MQTT_CLOUD_BROKER || 'mqtt://duck-01.lmq.cloudamqp.com:1883',
-  {
-    username: process.env.MQTT_CLOUD_USER || 'xdagoqsj:xdagoqsj',
-    password: process.env.MQTT_CLOUD_PASS || 'flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L',
-    reconnectPeriod: 5000,
-  }
-);
-*/
-/*
-const mqttCloud = mqtt.connect(
-  process.env.MQTT_CLOUD_BROKER || 'mqtt://duck-01.lmq.cloudamqp.com:1883',
-  {
-    username: process.env.MQTT_CLOUD_USER,
-    password: process.env.MQTT_CLOUD_PASS,
-    reconnectPeriod: 5000,
-  }
-);*/
-//*
-const mqttCloud = mqtt.connect(process.env.MQTT_CLOUD_BROKER ||'mqtt://duck-01.lmq.cloudamqp.com:8883',  {
-    username: process.env.MQTT_CLOUD_USER,
-    password: process.env.MQTT_CLOUD_PASS,
-    reconnectPeriod: 5000,
-    protocol: 'mqtts', // 👈 importante para puerto 8883
-}); */
-
-
-
-const mqttCloud = mqtt.connect(
-  process.env.MQTT_CLOUD_BROKER || 'mqtt://duck.lmq.cloudamqp.com:1883',
-  {
-    username: process.env.MQTT_CLOUD_USER || 'xdagoqsj',
-    password: process.env.MQTT_CLOUD_PASS,
-    reconnectPeriod: 5000
-  }
-);
-
-
-
+const mqttCloud = mqtt.connect(mqttCloudUrl, mqttCloudOptions);
 
 mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
 mqttCloud.on('error', (err) => console.error('❌ Error CloudMQTT:', err.message));
 
+*/
 
-/* const mqttCloud = mqtt.connect(
-  process.env.MQTT_CLOUD_BROKER || 'mqtts://duck.lmq.cloudamqp.com:8883/xdagoqsj', 
-  {
-    username: process.env.MQTT_CLOUD_USER || 'xdagoqsj',
-    password: process.env.MQTT_CLOUD_PASS,
-    reconnectPeriod: 5000
-  }
-);
-Opción 2 — Si necesitas TLS (puerto 8883)
+const mqttCloud = mqtt.connect(mqttCloudUrl, mqttCloudOptions);
 
-Solo si tu broker sí lo soporta:
+mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
+mqttCloud.on('error', (err) => {
+  console.error('❌ Error CloudMQTT:', err.message);
+  // No cerrar la conexión, mqtt.js intentará reconectar automáticamente
+});
 
+mqttCloud.on('close', () => {
+  console.warn('⚠️ Conexión MQTT cerrada, reconectando en 5s...');
+  setTimeout(() => mqttCloud.reconnect(), 5000);
+});
 
-/* const mqttCloud = mqtt.connect(
-  process.env.MQTT_CLOUD_BROKER || 'mqtts://duck.lmq.cloudamqp.com:8883/xdagoqsj', 
-  {
-    username: process.env.MQTT_CLOUD_USER || 'xdagoqsj',
-    password: process.env.MQTT_CLOUD_PASS,
-    reconnectPeriod: 5000
-  }
-);
-  */
-
-
-
-
+*/
 
 // ===============================
-// MQTT - Mosquitto Local (DEV)
+// MQTT - Mosquitto Local DEV
 // ===============================
 const mqttLocalDev = mqtt.connect(
   process.env.MQTT_LOCAL_DEV_BROKER || 'mqtt://mosquitto-stack:1883',
@@ -137,12 +141,10 @@ const mqttLocalDev = mqtt.connect(
 );
 
 mqttLocalDev.on('connect', () => console.log('✅ Conectado a Mosquitto DEV'));
-mqttLocalDev.on('error', (err) =>
-  console.error('❌ Error Mosquitto DEV:', err.message)
-);
+mqttLocalDev.on('error', (err) => console.error('❌ Error Mosquitto DEV:', err.message));
 
 // ===============================
-// MQTT - Mosquitto Local (PROD)
+// MQTT - Mosquitto Local PROD
 // ===============================
 const mqttLocalProd = mqtt.connect(
   process.env.MQTT_LOCAL_BROKER || 'mqtt://mosquitto-stack:1883',
@@ -154,11 +156,7 @@ const mqttLocalProd = mqtt.connect(
 );
 
 mqttLocalProd.on('connect', () => console.log('✅ Conectado a Mosquitto PROD'));
-mqttLocalProd.on('error', (err) =>
-  console.error('❌ Error Mosquitto PROD:', err.message)
-);
-
-*/
+mqttLocalProd.on('error', (err) => console.error('❌ Error Mosquitto PROD:', err.message));
 
 // ===============================
 // SUPABASE (Postgres)
@@ -190,8 +188,8 @@ async function testSupabaseConnection() {
 module.exports = {
   getMySQLConnection,
   mqttCloud,
-//  mqttLocalDev,
-//  mqttLocalProd,
+  mqttLocalDev,
+  mqttLocalProd,
   supabasePool,
   testSupabaseConnection,
 };
