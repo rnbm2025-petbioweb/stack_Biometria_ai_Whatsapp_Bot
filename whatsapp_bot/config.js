@@ -112,7 +112,7 @@ mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
 mqttCloud.on('error', (err) => console.error('❌ Error CloudMQTT:', err.message));
 
 */
-
+/*
 const mqttCloud = mqtt.connect(mqttCloudUrl, mqttCloudOptions);
 
 mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
