@@ -67,9 +67,9 @@ services:
       # MQTT Cloud (CloudMQTT)
       # ===============================
       - key: MQTT_CLOUD_BROKER
-        value: mqtt://duck-01.lmq.cloudamqp.com:1883  #8883
+        value: mqtts://duck.lmq.cloudamqp.com:8883  #8883
       - key: MQTT_CLOUD_USER
-        value: xdagoqsj:xdagoqsj
+        value: xdagoqsj
       - key: MQTT_CLOUD_PASS
         value: flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L
 
