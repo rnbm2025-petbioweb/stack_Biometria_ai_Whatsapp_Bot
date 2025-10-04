@@ -39,7 +39,7 @@ const mqttCloudOptions = {
   protocol: mqttCloudUrl.startsWith('mqtts') ? 'mqtts' : 'mqtt',
 };
 
-/* 
+/*
 // Bloque antiguo comentado: ya no es necesario porque mqtt.js maneja reconexión automática
 const mqttCloud = mqtt.connect(mqttCloudUrl, mqttCloudOptions);
 mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));

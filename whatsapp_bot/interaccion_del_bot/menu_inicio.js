@@ -7,7 +7,9 @@ const { mqttCloud } = require('../config.js'); // Usamos directamente tu cliente
 // Importar submenús
 const menuIdentidadCorporativa = require('./menu_identidad_corporativa');
 const menuODS = require('./ODS_NUMERAL_6_menu_inicio');
-const { menuTarifas } = require('./tarifas_menu');
+//const { menuTarifas } = require('./tarifas_menu');
+const { mostrarMenuTarifas, procesarSuscripcion } = require('./tarifas_menu');
+
 const menuServicios = require('./servicios_menu');
 const { suscripcionesCuidadores, procesarSuscripcion } = require('./suscripciones_cuidadores_bot');
 
@@ -143,10 +145,21 @@ async function menuInicio(msg, sessionFile, session) {
             await handleODS('6', msg, sessionFile);
             publishMQTT("menu_interaccion", "ODS PETBIO", msg.from);
         },
-        '7': async () => {
+/*        '7': async () => {
             await menuTarifas(msg, sessionFile, session);
             publishMQTT("menu_interaccion", "Tarifas", msg.from);
-        },
+        },   */
+
+	'7': async () => {
+	    await msg.reply(mostrarMenuTarifas());
+	    session.type = 'tarifas';
+	    session.lastActive = Date.now();
+	    fs.writeFileSync(sessionFile, JSON.stringify(session, null, 2));
+	    publishMQTT("menu_interaccion", "Tarifas", msg.from);
+	},
+
+
+
         '8': async () => {
             await menuServicios(msg, sessionFile);
             publishMQTT("menu_interaccion", "Servicios", msg.from);

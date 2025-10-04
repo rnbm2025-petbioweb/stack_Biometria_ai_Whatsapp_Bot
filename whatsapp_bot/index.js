@@ -8,6 +8,10 @@ const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
+const { mostrarMenuTarifas, procesarSuscripcion } = require('./interaccion_del_bot/tarifas_menu');
+
+
+
 
 // ------------------ 🌐 Configuración Supabase ------------------
 const supabaseUrl = 'https://jbsxvonnrahhfffeacdy.supabase.co';
@@ -171,17 +175,58 @@ whatsappClient.on('message', async msg => {
       case 'crear_cita':
         await crearCitaBot.procesarSolicitud(msg.from);
         break;
+
+      case 'tarifas':
+        const meses = parseInt(lcMsg);
+	    if ([3, 6, 12].includes(meses)) {
+	        await msg.reply(procesarSuscripcion(meses));
+	    } else if (lcMsg.startsWith('confirmar')) {
+	        const partes = lcMsg.split(' ');
+	        const mesesConfirmados = parseInt(partes[1]);
+	        if ([3, 6, 12].includes(mesesConfirmados)) {
+	            await msg.reply(`🎉 ¡Gracias por suscribirte al plan de ${mesesConfirmados} meses! 🐾`);
+	            session.type = 'menu_inicio'; // 🔹 volvemos al menú
+	        } else {
+	            await msg.reply("⚠️ Debes indicar un período válido: 3, 6 o 12 meses.");
+	        }
+	    } else {
+	        await msg.reply("❌ Opción inválida en tarifas. Responde con 3, 6 o 12 meses, o escribe *menu*.");
+	    }
+	    break;
+
+
       default:
         await msg.reply('🤖 No entendí. Escribe *menu* o *cancelar*.');
         break;
+
+
+
+/*
+	case 'tarifas':
+	    const meses = parseInt(lcMsg);
+	    if ([3, 6, 12].includes(meses)) {
+	        await msg.reply(procesarSuscripcion(meses));
+	    } else if (lcMsg.startsWith('confirmar')) {
+	        const partes = lcMsg.split(' ');
+	        const mesesConfirmados = parseInt(partes[1]);
+	        if ([3, 6, 12].includes(mesesConfirmados)) {
+	            await msg.reply(`🎉 ¡Gracias por suscribirte al plan de ${mesesConfirmados} meses! 🐾`);
+	            session.type = 'menu_inicio'; // 🔹 volvemos al menú
+	        } else {
+	            await msg.reply("⚠️ Debes indicar un período válido: 3, 6 o 12 meses.");
+	        }
+	    } else {
+	        await msg.reply("❌ Opción inválida en tarifas. Responde con 3, 6 o 12 meses, o escribe *menu*.");
+	    }
+	    break;   */
+
+
     }
 
     await saveSession(msg.from, session);
   } catch (err) {
-    console.error('❌ Error procesando mensaje:', err);
-    try { await msg.reply('⚠️ Error interno. Escribe *menu* para reiniciar.'); } catch (_) {}
-  }
-});
+    console.error('Trabajamos para mejorar los servicios.:', err);
+    try { await msg.reply('⚠️  Visite nuestro sitio: petbio.siac2025.com/identidad_rubm.php; conozca el modulo para el registro de biometria. Escribe *menu* para reiniciar.'); } catch (_) {}  });
 
 // ------------------ 📊 Monitoreo memoria ------------------
 setInterval(() => {
