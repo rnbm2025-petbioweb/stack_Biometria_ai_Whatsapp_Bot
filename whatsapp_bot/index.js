@@ -121,7 +121,7 @@ const { iniciarRegistroUsuario } = require('./interaccion_del_bot/registro_usuar
 const { iniciarSuscripciones } = require('./interaccion_del_bot/suscripciones_cuidadores_bot');
 const historiaClinicaBot = require('./interaccion_del_bot/historia_clinica_bot');
 const crearCitaBot = require('./interaccion_del_bot/crear_cita_bot');
-
+/*
 whatsappClient.on('message', async msg => {
   try {
     let session = await getSession(msg.from);
@@ -218,7 +218,7 @@ whatsappClient.on('message', async msg => {
 	    } else {
 	        await msg.reply("❌ Opción inválida en tarifas. Responde con 3, 6 o 12 meses, o escribe *menu*.");
 	    }
-	    break;   */
+	    break;   
 
 
     }
@@ -227,8 +227,108 @@ whatsappClient.on('message', async msg => {
   } catch (err) {
     console.error('Trabajamos para mejorar los servicios.:', err);
     try { await msg.reply('⚠️  Visite nuestro sitio: petbio.siac2025.com/identidad_rubm.php; conozca el modulo para el registro de biometria. Escribe *menu* para reiniciar.'); } catch (_) {}  });
-
+*/
 // ------------------ 📊 Monitoreo memoria ------------------
+
+
+// colocamos esta parte el dia 6 de octubre 2:40 am}
+
+
+whatsappClient.on('message', async msg => {
+  try {
+    let session = await getSession(msg.from);
+    session.type = session.type || 'menu_inicio';
+    session.step = session.step || null;
+    session.data = session.data || {};
+    session.lastActive = Date.now();
+    session.lastGreeted = session.lastGreeted || false;
+
+    const userMsg = (msg.body || '').trim();
+    const lcMsg = userMsg.toLowerCase();
+
+    // 🛑 CANCELAR
+    if (CMD_CANCEL.includes(lcMsg)) {
+      await deleteSession(msg.from);
+      await msg.reply('🛑 Registro cancelado. Escribe *menu* para volver al inicio.');
+      return;
+    }
+
+    // 📋 MENU
+    if (CMD_MENU.includes(lcMsg)) {
+      session.type = 'menu_inicio';
+      session.step = null;
+      session.data = {};
+      session.lastActive = Date.now();
+      session.lastGreeted = false;
+      await saludoDelUsuario(msg, null);
+      await saveSession(msg.from, session);
+      return;
+    }
+
+    // 🔁 Router principal
+    switch (session.type) {
+      case 'menu_inicio':
+        const handleMenu = await menuInicioModule(msg, null, session);
+        await handleMenu(userMsg);
+        break;
+
+      case 'registro_usuario':
+        await iniciarRegistroUsuario(msg, session, null);
+        break;
+
+      case 'registro_mascota':
+        // 🔹 Por ahora usamos CloudMQTT
+        await iniciarRegistroMascota(msg, session, null, mqttCloud);
+        break;
+
+      case 'suscripciones':
+        await iniciarSuscripciones(msg, session, null);
+        break;
+
+      case 'historia_clinica':
+        await historiaClinicaBot.procesarSolicitud(msg.from);
+        break;
+
+      case 'crear_cita':
+        await crearCitaBot.procesarSolicitud(msg.from);
+        break;
+
+      case 'tarifas':
+        const meses = parseInt(lcMsg);
+        if ([3, 6, 12].includes(meses)) {
+          await msg.reply(procesarSuscripcion(meses));
+        } else if (lcMsg.startsWith('confirmar')) {
+          const partes = lcMsg.split(' ');
+          const mesesConfirmados = parseInt(partes[1]);
+          if ([3, 6, 12].includes(mesesConfirmados)) {
+            await msg.reply(`🎉 ¡Gracias por suscribirte al plan de ${mesesConfirmados} meses! 🐾`);
+            session.type = 'menu_inicio'; // 🔹 volvemos al menú
+          } else {
+            await msg.reply("⚠️ Debes indicar un período válido: 3, 6 o 12 meses.");
+          }
+        } else {
+          await msg.reply("❌ Opción inválida en tarifas. Responde con 3, 6 o 12 meses, o escribe *menu*.");
+        }
+        break;
+
+      default:
+        await msg.reply('🤖 No entendí. Escribe *menu* o *cancelar*.');
+        break;
+    }
+
+    await saveSession(msg.from, session);
+
+  } catch (err) {
+    console.error('Trabajamos para mejorar los servicios.:', err);
+    try {
+      await msg.reply(
+        '⚠️  Visite nuestro sitio: petbio.siac2025.com/identidad_rubm.php; conozca el modulo para el registro de biometria. Escribe *menu* para reiniciar.'
+      );
+    } catch (_) {}
+  }
+});
+
+
 setInterval(() => {
   const used = process.memoryUsage().rss / 1024 / 1024;
   console.log(`📊 Memoria usada: ${used.toFixed(2)} MB`);
