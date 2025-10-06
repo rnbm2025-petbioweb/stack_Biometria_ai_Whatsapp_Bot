@@ -11,17 +11,9 @@ const { mqttCloud } = require('../config.js'); // Cliente CloudMQTT
 // Importar submenús
 const menuIdentidadCorporativa = require('./menu_identidad_corporativa');
 const menuODS = require('./ODS_NUMERAL_6_menu_inicio');
-<<<<<<< HEAD
-// const { menuTarifas } = require('./tarifas_menu');
-const { mostrarMenuTarifas, procesarSuscripcion } = require('./tarifas_menu');
-
-// ⚠️ Renombramos para evitar conflicto de nombres
-const { suscripcionesCuidadores, procesarSuscripcion: procesarSuscripcionCuidadores } = require('./suscripciones_cuidadores_bot');
-=======
-const { mostrarMenuTarifas, procesarSuscripcion } = require('./tarifas_menu');
 const menuServicios = require('./servicios_menu');
-const { iniciarSuscripciones, procesarAcceso } = require('./suscripciones_cuidadores_bot');
->>>>>>> faf9d38 (Actualización: cambios en archivos principales, limpieza de copias de respaldo)
+const { mostrarMenuTarifas, procesarSuscripcion } = require('./tarifas_menu');
+const { iniciarSuscripciones, procesarSuscripcion: procesarSuscripcionCuidadores } = require('./suscripciones_cuidadores_bot');
 
 // ==============================
 // 📌 Texto principal del menú
@@ -49,11 +41,7 @@ const MENU_TEXT = `
 async function menuInicio(msg, sessionFile, session) {
     console.log("📁 sessionFile recibido en menuInicio:", sessionFile);
 
-<<<<<<< HEAD
-    // ✅ Validación de sessionFile
-=======
     // Validación de sessionFile
->>>>>>> faf9d38 (Actualización: cambios en archivos principales, limpieza de copias de respaldo)
     if (!sessionFile || typeof sessionFile !== "string") {
         console.warn("⚠️ sessionFile es null o inválido. Asignando ruta por defecto...");
         sessionFile = path.join(__dirname, "../.wwebjs_auth/session.json");
@@ -70,11 +58,7 @@ async function menuInicio(msg, sessionFile, session) {
     const sessionDir = path.dirname(sessionFile);
     if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
-<<<<<<< HEAD
-    // ✅ Guardar sesión actualizada
-=======
     // Guardar sesión actualizada
->>>>>>> faf9d38 (Actualización: cambios en archivos principales, limpieza de copias de respaldo)
     fs.writeFileSync(sessionFile, JSON.stringify(session, null, 2));
 
     // ==============================
@@ -132,11 +116,7 @@ async function menuInicio(msg, sessionFile, session) {
         '7': async () => {
             await msg.reply(mostrarMenuTarifas());
             session.type = 'tarifas';
-<<<<<<< HEAD
-            session.lastActive = Date.now();
-=======
             session.step = 'esperando_periodo';
->>>>>>> faf9d38 (Actualización: cambios en archivos principales, limpieza de copias de respaldo)
             fs.writeFileSync(sessionFile, JSON.stringify(session, null, 2));
             publishMQTT("menu_interaccion", "Tarifas", msg.from);
         },
@@ -156,7 +136,6 @@ async function menuInicio(msg, sessionFile, session) {
     const handleOption = async (option) => {
         if (!option) return;
 
-        // Limpiar input (espacios, saltos de línea)
         option = option.trim();
 
         if (session.type === 'suscripciones') {

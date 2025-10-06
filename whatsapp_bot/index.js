@@ -18,7 +18,6 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 console.log("🔑 Supabase Key cargada:", supabaseKey ? "✅ Sí" : "❌ No");
 
-// ❗ Detener el proceso si no hay clave de Supabase
 if (!supabaseKey) {
   console.error("❌ ERROR: No se encontró SUPABASE_KEY. El bot no puede iniciar sin ella.");
   process.exit(1);
@@ -45,40 +44,6 @@ if (mqttCloud) {
 }
 
 // ------------------ 🤖 Cliente WhatsApp ------------------
-
-/*
-const whatsappClient = new Client({
-  puppeteer: {
-    headless: true,
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage'
-    ]
-  },
-  authStrategy: new LocalAuth({ dataPath: '/tmp/.wwebjs_auth' })
-}); */
-
-/*
-// ------------------ 🤖 Cliente WhatsApp ------------------
-const whatsappClient = new Client({
-  authStrategy: new LocalAuth({
-    dataPath: path.join(__dirname, './session')  // 📁 sesión persistente
-  }),
-  puppeteer: {
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage'
-    ]
-  }
-});
-*/
-
-//const { Client, LocalAuth } = require('whatsapp-web.js');
-
 const whatsappClient = new Client({
   puppeteer: {
     headless: true,
@@ -89,12 +54,9 @@ const whatsappClient = new Client({
     ]
   },
   authStrategy: new LocalAuth({
-//    dataPath: './session/session'   // 👈 ¡Importante! No pongas path.join ni carpetas extras
-    userDataDir: '/usr/src/app/session'
-
+    userDataDir: '/usr/src/app/session'  // 📁 Carpeta persistente para Docker
   })
 });
-
 
 // ------------------ 🌐 Express Healthcheck y QR ------------------
 const app = express();
@@ -181,12 +143,9 @@ const { iniciarRegistroUsuario } = require('./interaccion_del_bot/registro_usuar
 const { iniciarSuscripciones } = require('./interaccion_del_bot/suscripciones_cuidadores_bot');
 const historiaClinicaBot = require('./interaccion_del_bot/historia_clinica_bot');
 const crearCitaBot = require('./interaccion_del_bot/crear_cita_bot');
-<<<<<<< HEAD
-/*
-=======
 const { mostrarMenuTarifas, procesarSuscripcion } = require('./interaccion_del_bot/tarifas_menu');
 
->>>>>>> faf9d38 (Actualización: cambios en archivos principales, limpieza de copias de respaldo)
+// ------------------ 📩 Evento de mensajes ------------------
 whatsappClient.on('message', async msg => {
   try {
     let session = await getSession(msg.from);
@@ -225,8 +184,7 @@ whatsappClient.on('message', async msg => {
         await handleMenu(userMsg);
         break;
       case 'registro_usuario':
-        const sessionFileSafe = path.join(__dirname, `sessions/${msg.from}.json`);
-        await iniciarRegistroUsuario(msg, session, sessionFileSafe);
+        await iniciarRegistroUsuario(msg, session, null);
         break;
       case 'registro_mascota':
         await iniciarRegistroMascota(msg, session, null, mqttCloud);
@@ -235,7 +193,6 @@ whatsappClient.on('message', async msg => {
         await iniciarSuscripciones(msg, session, null);
         break;
       case 'historia_clinica':
-        console.log('📡 Ingresando al flujo historia_clinica...');
         await historiaClinicaBot.procesarSolicitud(msg.from);
         break;
       case 'crear_cita':
@@ -261,152 +218,23 @@ whatsappClient.on('message', async msg => {
       default:
         await msg.reply('🤖 No entendí. Escribe *menu* o *cancelar*.');
         break;
-<<<<<<< HEAD
-
-
-
-/*
-	case 'tarifas':
-	    const meses = parseInt(lcMsg);
-	    if ([3, 6, 12].includes(meses)) {
-	        await msg.reply(procesarSuscripcion(meses));
-	    } else if (lcMsg.startsWith('confirmar')) {
-	        const partes = lcMsg.split(' ');
-	        const mesesConfirmados = parseInt(partes[1]);
-	        if ([3, 6, 12].includes(mesesConfirmados)) {
-	            await msg.reply(`🎉 ¡Gracias por suscribirte al plan de ${mesesConfirmados} meses! 🐾`);
-	            session.type = 'menu_inicio'; // 🔹 volvemos al menú
-	        } else {
-	            await msg.reply("⚠️ Debes indicar un período válido: 3, 6 o 12 meses.");
-	        }
-	    } else {
-	        await msg.reply("❌ Opción inválida en tarifas. Responde con 3, 6 o 12 meses, o escribe *menu*.");
-	    }
-	    break;   
-
-
-=======
->>>>>>> faf9d38 (Actualización: cambios en archivos principales, limpieza de copias de respaldo)
     }
 
     await saveSession(msg.from, session);
 
   } catch (err) {
-<<<<<<< HEAD
-    console.error('Trabajamos para mejorar los servicios.:', err);
-    try { await msg.reply('⚠️  Visite nuestro sitio: petbio.siac2025.com/identidad_rubm.php; conozca el modulo para el registro de biometria. Escribe *menu* para reiniciar.'); } catch (_) {}  });
-*/
-=======
     console.error('⚠️ Error en el bot:', err);
-    try { await msg.reply('⚠️ Ocurrió un error. Escribe *menu* para reiniciar.'); } catch (_) {}
+    try { 
+      await msg.reply('⚠️ Ocurrió un error. Escribe *menu* para reiniciar.');
+    } catch (_) {}
   }
 });
 
->>>>>>> faf9d38 (Actualización: cambios en archivos principales, limpieza de copias de respaldo)
 // ------------------ 📊 Monitoreo memoria ------------------
-
-
-// colocamos esta parte el dia 6 de octubre 2:40 am}
-
-
-whatsappClient.on('message', async msg => {
-  try {
-    let session = await getSession(msg.from);
-    session.type = session.type || 'menu_inicio';
-    session.step = session.step || null;
-    session.data = session.data || {};
-    session.lastActive = Date.now();
-    session.lastGreeted = session.lastGreeted || false;
-
-    const userMsg = (msg.body || '').trim();
-    const lcMsg = userMsg.toLowerCase();
-
-    // 🛑 CANCELAR
-    if (CMD_CANCEL.includes(lcMsg)) {
-      await deleteSession(msg.from);
-      await msg.reply('🛑 Registro cancelado. Escribe *menu* para volver al inicio.');
-      return;
-    }
-
-    // 📋 MENU
-    if (CMD_MENU.includes(lcMsg)) {
-      session.type = 'menu_inicio';
-      session.step = null;
-      session.data = {};
-      session.lastActive = Date.now();
-      session.lastGreeted = false;
-      await saludoDelUsuario(msg, null);
-      await saveSession(msg.from, session);
-      return;
-    }
-
-    // 🔁 Router principal
-    switch (session.type) {
-      case 'menu_inicio':
-        const handleMenu = await menuInicioModule(msg, null, session);
-        await handleMenu(userMsg);
-        break;
-
-      case 'registro_usuario':
-        await iniciarRegistroUsuario(msg, session, null);
-        break;
-
-      case 'registro_mascota':
-        // 🔹 Por ahora usamos CloudMQTT
-        await iniciarRegistroMascota(msg, session, null, mqttCloud);
-        break;
-
-      case 'suscripciones':
-        await iniciarSuscripciones(msg, session, null);
-        break;
-
-      case 'historia_clinica':
-        await historiaClinicaBot.procesarSolicitud(msg.from);
-        break;
-
-      case 'crear_cita':
-        await crearCitaBot.procesarSolicitud(msg.from);
-        break;
-
-      case 'tarifas':
-        const meses = parseInt(lcMsg);
-        if ([3, 6, 12].includes(meses)) {
-          await msg.reply(procesarSuscripcion(meses));
-        } else if (lcMsg.startsWith('confirmar')) {
-          const partes = lcMsg.split(' ');
-          const mesesConfirmados = parseInt(partes[1]);
-          if ([3, 6, 12].includes(mesesConfirmados)) {
-            await msg.reply(`🎉 ¡Gracias por suscribirte al plan de ${mesesConfirmados} meses! 🐾`);
-            session.type = 'menu_inicio'; // 🔹 volvemos al menú
-          } else {
-            await msg.reply("⚠️ Debes indicar un período válido: 3, 6 o 12 meses.");
-          }
-        } else {
-          await msg.reply("❌ Opción inválida en tarifas. Responde con 3, 6 o 12 meses, o escribe *menu*.");
-        }
-        break;
-
-      default:
-        await msg.reply('🤖 No entendí. Escribe *menu* o *cancelar*.');
-        break;
-    }
-
-    await saveSession(msg.from, session);
-
-  } catch (err) {
-    console.error('Trabajamos para mejorar los servicios.:', err);
-    try {
-      await msg.reply(
-        '⚠️  Visite nuestro sitio: petbio.siac2025.com/identidad_rubm.php; conozca el modulo para el registro de biometria. Escribe *menu* para reiniciar.'
-      );
-    } catch (_) {}
-  }
-	
-});	
-
 setInterval(() => {
   const used = process.memoryUsage().rss / 1024 / 1024;
   console.log(`📊 Memoria usada: ${used.toFixed(2)} MB`);
 }, 10000);
+
 // 🚀 Inicializar cliente WhatsApp
 whatsappClient.initialize();
