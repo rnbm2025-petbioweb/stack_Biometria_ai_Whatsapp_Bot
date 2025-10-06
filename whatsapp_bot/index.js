@@ -327,13 +327,11 @@ whatsappClient.on('message', async msg => {
     } catch (_) {}
   }
 }
+});	
 
 setInterval(() => {
   const used = process.memoryUsage().rss / 1024 / 1024;
   console.log(`📊 Memoria usada: ${used.toFixed(2)} MB`);
 }, 10000);
-
-}	
-
 // 🚀 Inicializar cliente WhatsApp
 whatsappClient.initialize();
