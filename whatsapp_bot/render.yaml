@@ -77,13 +77,13 @@ services:
       # MQTT Local DEV / PROD
       # ===============================
       - key: MQTT_LOCAL_DEV_BROKER
-        value: mqtt://mosquitto-stack:1883
+        value: mqtt://172.23.0.3:1883
       - key: MQTT_LOCAL_DEV_USER
         value: petbio_user_dev
       - key: MQTT_LOCAL_DEV_PASS
         value: petbio2025_dev!
       - key: MQTT_LOCAL_BROKER
-        value: mqtt://mosquitto-stack:1883
+        value: mqtt://172.23.0.3:1883
       - key: MQTT_LOCAL_USER
         value: petbio_user
       - key: MQTT_LOCAL_PASS
