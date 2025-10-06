@@ -326,7 +326,7 @@ whatsappClient.on('message', async msg => {
       );
     } catch (_) {}
   }
-}
+	
 });	
 
 setInterval(() => {
