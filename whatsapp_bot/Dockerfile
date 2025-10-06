@@ -1,115 +1,80 @@
 # ==========================
-# Dockerfile completo WhatsApp Bot PETBIO
+# WhatsApp Bot PETBIO - Dockerfile completo y actualizado
 # ==========================
-FROM node:18-slim
+FROM node:20-slim
 
 # ==========================
-# Instalar dependencias del sistema necesarias para Puppeteer/Chromium
+# Instalar dependencias necesarias para Puppeteer y Chromium
 # ==========================
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    fonts-liberation \
-    libnss3 \
-    libatk1.0-0 \
-    libcups2 \
-    libdrm2 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxrandr2 \
-    libgbm1 \
-    libasound2 \
-    libpangocairo-1.0-0 \
-    libgtk-3-0 \
-    libpango-1.0-0 \
-    libxshmfence1 \
-    libx11-xcb1 \
-    libx11-6 \
-    libxss1 \
-    wget \
-    chromium \
-    xvfb \
-    dumb-init \
-    xauth \
-    dbus-x11 \
-    gconf-service \
-    libexpat1 \
-    libfontconfig1 \
-    libgcc1 \
-    libgconf-2-4 \
-    libgdk-pixbuf2.0-0 \
-    libglib2.0-0 \
-    libnspr4 \
-    libstdc++6 \
-    libxtst6 \
-    xdg-utils \
-    default-mysql-client \
+  ca-certificates \
+  fonts-liberation \
+  libnss3 \
+  libatk1.0-0 \
+  libcups2 \
+  libdrm2 \
+  libxcomposite1 \
+  libxdamage1 \
+  libxrandr2 \
+  libgbm1 \
+  libasound2 \
+  libpangocairo-1.0-0 \
+  libgtk-3-0 \
+  libpango-1.0-0 \
+  libxshmfence1 \
+  libx11-xcb1 \
+  libx11-6 \
+  libxss1 \
+  wget \
+  chromium \
+  xvfb \
+  dumb-init \
+  xauth \
+  dbus-x11 \
+  gconf-service \
+  libexpat1 \
+  libfontconfig1 \
+  libgcc1 \
+  libgconf-2-4 \
+  libgdk-pixbuf2.0-0 \
+  libglib2.0-0 \
+  libnspr4 \
+  libstdc++6 \
+  libxtst6 \
+  xdg-utils \
+  default-mysql-client \
  && ln -s /usr/bin/chromium /usr/bin/chromium-browser \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # ==========================
-# Crear usuario sin privilegios
-# ==========================
-RUN groupadd -r app && useradd -r -g app -d /usr/src/app -s /sbin/nologin app
-
-# ==========================
-# Directorio de trabajo
+# Crear directorio de trabajo
 # ==========================
 WORKDIR /usr/src/app
 
 # ==========================
-# Copiar package.json y package-lock.json, instalar dependencias
+# Copiar archivos de dependencias e instalarlas
 # ==========================
-#COPY package.json package-lock.json ./
-
-# ==========================
-# Copiar package.json e instalar dependencias
-# ==========================
-#COPY package*.json ./
-#RUN npm ci --only=production \
-# && npm install puppeteer@19.11.1 pdfkit --save \
-# && npm cache clean --force
-
+COPY package*.json ./
+RUN npm install --omit=dev && \
+    npm install puppeteer@19.11.1 pdfkit --save && \
+    npm install mqtt-cli --save && \
+    npm cache clean --force
 
 # ==========================
-# Instalar dependencias
+# Copiar todo el código fuente
 # ==========================
-#RUN npm install --production \
-# && npm install puppeteer@19.11.1 pdfkit --save \
-# && npm cache clean --force
-
-#RUN npm install --omit=dev \
-# && npm install puppeteer@19.11.1 pdfkit --save \
-# && npm cache clean --force
-
+COPY . .
 
 # ==========================
-# Copiar archivos de dependencias
+# Crear carpetas necesarias
 # ==========================
-COPY package*.json /usr/src/app/
-
-# Verificar que se copiaron correctamente
-RUN ls -l /usr/src/app/
-
-# ==========================
-# Instalar dependencias en modo producción
-# ==========================
-RUN npm install --omit=dev \
- && npm install puppeteer@19.11.1 pdfkit --save \
- && npm cache clean --force
-
-# Instalar mqtt-cli como dependencia local
-RUN npm install mqtt-cli --save
-
-ENV MQTT_BROKER_HOST=mosquitto-stack
-ENV MQTT_BROKER_PORT=1883
-ENV MQTT_USER=petbio_user
-ENV MQTT_PASS=petbio2025!
-
-
-# ⚡ Cambio clave: usamos npm install en lugar de npm ci para Render
-#RUN npm install --production \
-# && npm install puppeteer@19.11.1 pdfkit --save \
-# && npm cache clean --force
+RUN mkdir -p \
+  /usr/src/app/WhatsApp_bot_storage/certificados \
+  /usr/src/app/WhatsApp_bot_storage/uploads \
+  /usr/src/app/sessions \
+  /usr/src/app/.wwebjs_auth \
+  /usr/src/app/petbio_storage \
+  /tmp/puppeteer
 
 # ==========================
 # Variables de entorno
@@ -120,33 +85,23 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 # ==========================
-# Copiar todo el código fuente
+# Entrypoint para limpiar sesión antes de arrancar
 # ==========================
-COPY . .
+RUN echo '#!/bin/sh\n\
+echo "🧹 Limpiando sesiones antiguas..."\n\
+rm -rf /usr/src/app/.wwebjs_auth/session\n\
+rm -rf /tmp/.wwebjs_auth/session\n\
+echo "🚀 Iniciando WhatsApp bot..."\n\
+exec dumb-init xvfb-run --server-args="-screen 0 1280x1024x24" node whatsapp_bot/index.js\n\
+' > /usr/src/app/entrypoint.sh && chmod +x /usr/src/app/entrypoint.sh
 
 # ==========================
-# Crear carpetas necesarias y asignar permisos a app
-# ==========================
-RUN mkdir -p \
-    /usr/src/app/WhatsApp_bot_storage/certificados \
-    /usr/src/app/WhatsApp_bot_storage/uploads \
-    /usr/src/app/sessions \
-    /usr/src/app/.wwebjs_auth \
-    /usr/src/app/petbio_storage \
-    /tmp/puppeteer \
- && chown -R app:app /usr/src/app /tmp/puppeteer
-
-# ==========================
-# Cambiar usuario a app
-# ==========================
-USER app
-
-# ==========================
-# Exponer puerto
+# Exponer el puerto del bot
 # ==========================
 EXPOSE 3000
 
 # ==========================
-# Comando de inicio con Puppeteer headless
+# Comando de inicio
 # ==========================
-CMD ["sh", "-c", "dumb-init xvfb-run --server-args='-screen 0 1280x1024x24' node whatsapp_bot/index.js"]
+CMD ["/usr/src/app/entrypoint.sh"]
+

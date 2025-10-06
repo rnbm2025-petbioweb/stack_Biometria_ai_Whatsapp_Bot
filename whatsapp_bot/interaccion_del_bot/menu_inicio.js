@@ -1,17 +1,27 @@
 // menu_inicio.js
+// ==================================================
+// Menú Principal PETBIO — Gestión de opciones
+// ==================================================
+
 const fs = require('fs');
 const path = require('path');
 const utils = require('./utils_bot');
-const { mqttCloud } = require('../config.js'); // Usamos directamente tu cliente CloudMQTT
+const { mqttCloud } = require('../config.js'); // Cliente CloudMQTT
 
 // Importar submenús
 const menuIdentidadCorporativa = require('./menu_identidad_corporativa');
 const menuODS = require('./ODS_NUMERAL_6_menu_inicio');
+<<<<<<< HEAD
 // const { menuTarifas } = require('./tarifas_menu');
 const { mostrarMenuTarifas, procesarSuscripcion } = require('./tarifas_menu');
 
 // ⚠️ Renombramos para evitar conflicto de nombres
 const { suscripcionesCuidadores, procesarSuscripcion: procesarSuscripcionCuidadores } = require('./suscripciones_cuidadores_bot');
+=======
+const { mostrarMenuTarifas, procesarSuscripcion } = require('./tarifas_menu');
+const menuServicios = require('./servicios_menu');
+const { iniciarSuscripciones, procesarAcceso } = require('./suscripciones_cuidadores_bot');
+>>>>>>> faf9d38 (Actualización: cambios en archivos principales, limpieza de copias de respaldo)
 
 // ==============================
 // 📌 Texto principal del menú
@@ -39,26 +49,32 @@ const MENU_TEXT = `
 async function menuInicio(msg, sessionFile, session) {
     console.log("📁 sessionFile recibido en menuInicio:", sessionFile);
 
+<<<<<<< HEAD
     // ✅ Validación de sessionFile
+=======
+    // Validación de sessionFile
+>>>>>>> faf9d38 (Actualización: cambios en archivos principales, limpieza de copias de respaldo)
     if (!sessionFile || typeof sessionFile !== "string") {
         console.warn("⚠️ sessionFile es null o inválido. Asignando ruta por defecto...");
         sessionFile = path.join(__dirname, "../.wwebjs_auth/session.json");
     }
 
-    // ✅ Inicializar datos de sesión
+    // Inicializar datos de sesión
     session.type = session.type || 'menu_inicio';
-    session.step = session.step || null;
+    session.step = session.step || 'esperando_opcion_menu';
     session.data = session.data || {};
     session.lastActive = Date.now();
     session.lastGreeted = session.lastGreeted || false;
 
-    // ✅ Crear carpeta de sesión si no existe antes de escribir
+    // Crear carpeta de sesión si no existe
     const sessionDir = path.dirname(sessionFile);
-    if (!fs.existsSync(sessionDir)) {
-        fs.mkdirSync(sessionDir, { recursive: true });
-    }
+    if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
+<<<<<<< HEAD
     // ✅ Guardar sesión actualizada
+=======
+    // Guardar sesión actualizada
+>>>>>>> faf9d38 (Actualización: cambios en archivos principales, limpieza de copias de respaldo)
     fs.writeFileSync(sessionFile, JSON.stringify(session, null, 2));
 
     // ==============================
@@ -116,7 +132,11 @@ async function menuInicio(msg, sessionFile, session) {
         '7': async () => {
             await msg.reply(mostrarMenuTarifas());
             session.type = 'tarifas';
+<<<<<<< HEAD
             session.lastActive = Date.now();
+=======
+            session.step = 'esperando_periodo';
+>>>>>>> faf9d38 (Actualización: cambios en archivos principales, limpieza de copias de respaldo)
             fs.writeFileSync(sessionFile, JSON.stringify(session, null, 2));
             publishMQTT("menu_interaccion", "Tarifas", msg.from);
         },
@@ -125,7 +145,7 @@ async function menuInicio(msg, sessionFile, session) {
             publishMQTT("menu_interaccion", "Servicios", msg.from);
         },
         '9': async () => {
-            await suscripcionesCuidadores(msg, sessionFile, session);
+            await iniciarSuscripciones(msg, sessionFile, session);
             publishMQTT("menu_interaccion", "Suscripciones Cuidadores", msg.from);
         },
     };
@@ -134,6 +154,11 @@ async function menuInicio(msg, sessionFile, session) {
     // 📌 Función para manejar la opción elegida
     // ==============================
     const handleOption = async (option) => {
+        if (!option) return;
+
+        // Limpiar input (espacios, saltos de línea)
+        option = option.trim();
+
         if (session.type === 'suscripciones') {
             await procesarSuscripcionCuidadores(msg, sessionFile, session);
             publishMQTT("menu_interaccion", "Procesando Suscripcion", msg.from);

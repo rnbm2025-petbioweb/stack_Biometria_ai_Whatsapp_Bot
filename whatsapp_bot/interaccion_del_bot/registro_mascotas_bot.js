@@ -4,16 +4,15 @@
 const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
-//const mqtt = require('mqtt');   // 🚫 Comentado, ya no usamos mqtt directo
-
 const { execFile } = require('child_process');
-const { safe } = require('./utils_bot'); // Funciones utilitarias propias
-const { mqttCloud } = require('../config'); // ✅ Usamos solo CloudMQTT
+const { safe } = require('./utils_bot');
+const { mqttCloud } = require('../config');
+
+const razas = require('./razas_perros.json');
 
 // =====================
 // Autocompletar raza
 // =====================
-const razas = require('./razas_perros.json');
 function sugerirRaza(input) {
     const term = input.toLowerCase();
     return razas.filter(r => r.toLowerCase().includes(term)).slice(0, 10);
@@ -32,25 +31,20 @@ const PDF_PYTHON_DIR = path.join(UPLOADS_DIR, 'pdfs_python');
 });
 
 // =====================
-// Configuración DB y MQTT
+// Configuración DB
 // =====================
 const dbConfig = {
     host: process.env.MYSQL_HOST || 'mysql_petbio_secure',
     user: process.env.MYSQL_USER || 'root',
     password: process.env.MYSQL_PASSWORD || 'R00t_Segura_2025!',
     database: process.env.MYSQL_DATABASE || 'db__produccion_petbio_segura_2025',
-    port: Number(process.env.MYSQL_PORT) || 3310,
+    port: Number(process.env.MYSQL_PORT) || 3306,
+// 5 de  Octubre  se tenia en uso puerto 3310 sin exito en las opciones 3 y 4 apartir de la fecha cambiamos 3306
     charset: 'utf8mb4'
 };
 
-// 🚫 Antes usábamos broker local (DEV/PROD)
-// const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://mosquitto-stack:1883';
-// const MQTT_CLIENT = mqtt.connect(MQTT_BROKER);
-
-// ✅ Ahora todo se hace vía CloudMQTT desde config.js
-
 // =====================
-// Generar número PETBIO
+// Generar número PETBIO único
 // =====================
 async function generarNumeroPetbio(codigo_postal) {
     const connection = await mysql.createConnection(dbConfig);
@@ -82,12 +76,10 @@ async function guardarImagen(msgOrUrl, nombreArchivo, folder = PERFIL_DIR) {
     const extDefault = '.jpg';
     let filePath;
 
-    // Validar que venga media de WhatsApp
     if (msgOrUrl.hasMedia) {
         const media = await msgOrUrl.downloadMedia();
         if (!media || !media.data) throw new Error('No se pudo descargar la imagen');
 
-        // Extensiones permitidas: jpeg, png, webp
         const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
         if (!allowedMimes.includes(media.mimetype)) throw new Error('Formato de imagen inválido');
 
@@ -95,7 +87,6 @@ async function guardarImagen(msgOrUrl, nombreArchivo, folder = PERFIL_DIR) {
         filePath = path.join(folder, `${nombreArchivo}_${Date.now()}${ext}`);
         fs.writeFileSync(filePath, Buffer.from(media.data, 'base64'));
     }
-    // URL
     else if (typeof msgOrUrl === 'string' && msgOrUrl.startsWith('http')) {
         const https = require('https');
         const urlExt = path.extname(msgOrUrl).split('?')[0] || extDefault;
@@ -109,7 +100,6 @@ async function guardarImagen(msgOrUrl, nombreArchivo, folder = PERFIL_DIR) {
             }).on('error', reject);
         });
     }
-    // Base64
     else if (typeof msgOrUrl === 'string' && msgOrUrl.startsWith('data:image')) {
         const base64Data = msgOrUrl.split(',')[1];
         filePath = path.join(folder, `${nombreArchivo}_${Date.now()}${extDefault}`);
@@ -119,20 +109,6 @@ async function guardarImagen(msgOrUrl, nombreArchivo, folder = PERFIL_DIR) {
     }
 
     return filePath;
-}
-
-// =====================
-// Enviar imágenes a Python
-// =====================
-function enviarImagenesPython(id_mascota, imagenes) {
-    const payload = JSON.stringify({ id_mascota, imagenes });
-
-    // 🚫 Forma vieja: broker local
-    // MQTT_CLIENT.publish(`entrenar_mascota/${id_mascota}`, payload);
-    // mqttClient.publish(`entrenar_mascota/${id_mascota}`, payload);
-
-    // ✅ Ahora publicamos solo con CloudMQTT
-    mqttCloud.publish(`entrenar_mascota/${id_mascota}`, payload);
 }
 
 // =====================
@@ -238,107 +214,35 @@ async function registrarMascota(data, archivos) {
             safe(archivos.latdr),
             safe(archivos.latiz)
         ];
-
         const [result] = await connection.execute(sql, values);
         const id_mascota = result.insertId;
 
-        const pdfNodePath = await generarPDFNode({ ...data, id_mascota, numero_documento_petbio, ruta_img_perfil: archivos.perfil });
-        const pdfPythonPath = await generarPDFPython({ ...data, numero_documento_petbio, ruta_img_perfil: archivos.perfil });
+        // Generar PDFs
+        const pdfNode = await generarPDFNode({ ...data, id_mascota, numero_documento_petbio });
+        const pdfPython = await generarPDFPython({ ...data, id_mascota, numero_documento_petbio });
 
+        // Actualizar rutas de PDF en DB
         await connection.execute(
             'UPDATE registro_mascotas SET ruta_pdf = ?, ruta_pdf_python = ? WHERE id = ?',
-            [pdfNodePath, pdfPythonPath, id_mascota]
+            [pdfNode, pdfPython, id_mascota]
         );
 
-        // 🚫 Antes: enviábamos imágenes a Python con cliente local
-        // enviarImagenesPython(id_mascota, Object.values(archivos).filter(Boolean));
+        // Publicar imágenes a CloudMQTT
+        mqttCloud.publish('petbio/imagenes', JSON.stringify({
+            id_mascota,
+            fotos: archivos
+        }));
 
-        // ✅ Ahora enviamos a Python con CloudMQTT
-        const payload = JSON.stringify({ id_mascota, imagenes: Object.values(archivos).filter(Boolean) });
-        mqttCloud.publish(`entrenar_mascota/${id_mascota}`, payload);
-
-        return { id_mascota, numero_documento_petbio, pdfNodePath, pdfPythonPath };
+        return { id_mascota, pdfNode, pdfPython, numero_documento_petbio };
     } finally {
         await connection.end();
     }
 }
 
-// =====================
-// Flujo WhatsApp
-// =====================
-async function iniciarRegistroMascota(msg, session, sessionFile) {
-    const step = session.step || 'nombre';
-    const data = session.data || {};
-    const texto = (msg.body || '').trim();
-
-    try {
-        if (texto.toLowerCase() === 'cancelar') {
-            session.type = 'menu';
-            fs.writeFileSync(sessionFile, JSON.stringify(session));
-            return msg.reply('✅ Registro cancelado. Volviendo al menú...');
-        }
-
-        switch(step) {
-            case 'nombre':
-                data.nombre = texto;
-                session.step = 'edad';
-                await msg.reply('📌 Escribe la edad de la mascota:');
-                break;
-            case 'edad':
-                data.edad = texto;
-                session.step = 'raza';
-                await msg.reply('📌 Escribe la raza de la mascota (puedes recibir sugerencias automáticamente):');
-                break;
-            case 'raza':
-                data.raza = sugerirRaza(texto)[0] || texto;
-                session.step = 'fotos';
-                session.data = { ...data, fotos: [] };
-                await msg.reply('📸 Ahora envía las fotos de la mascota: perfil, laterales y ráfaga de 5 fotos. Envía una por mensaje.');
-                break;
-            case 'fotos':
-                try {
-                    const rutaImagen = await guardarImagen(msg, data.nombre);
-                    if (!session.data.fotos) session.data.fotos = [];
-                    session.data.fotos.push(rutaImagen);
-
-                    if (session.data.fotos.length >= 5) {
-                        const archivos = {
-                            perfil: session.data.fotos[0],
-                            latdr: session.data.fotos[1],
-                            latiz: session.data.fotos[2],
-                            hf0: session.data.fotos[3],
-                            hf15: session.data.fotos[4],
-                            hf30: session.data.fotos[5],
-                            hfld15: session.data.fotos[6],
-                            hfli15: session.data.fotos[7]
-                        };
-                        const resultado = await registrarMascota(data, archivos);
-                        await msg.reply(`✅ Mascota registrada con número PETBIO: ${resultado.numero_documento_petbio}`);
-                        session.type = 'menu';
-                        session.step = null;
-                        session.data = null;
-                    } else {
-                        await msg.reply(`✅ Imagen recibida (${session.data.fotos.length}/5). Envía la siguiente foto.`);
-                    }
-                } catch (err) {
-                    await msg.reply('❌ Error al procesar la imagen, por favor envía un archivo válido.');
-                    console.error(err);
-                }
-                break;
-        }
-        session.data = { ...session.data, ...data };
-        fs.writeFileSync(sessionFile, JSON.stringify(session));
-    } catch (e) {
-        console.error(e);
-        await msg.reply('❌ Error en el registro, volviendo al menú.');
-        session.type = 'menu';
-        session.step = null;
-        session.data = null;
-        fs.writeFileSync(sessionFile, JSON.stringify(session));
-    }
-}
-
-// =====================
-// Exportar funciones
-// =====================
-module.exports = { registrarMascota, iniciarRegistroMascota, sugerirRaza };
+module.exports = {
+    sugerirRaza,
+    guardarImagen,
+    registrarMascota,
+    generarPDFNode,
+    generarPDFPython
+};

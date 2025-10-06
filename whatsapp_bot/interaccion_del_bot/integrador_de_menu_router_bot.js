@@ -1,3 +1,4 @@
+
 // integrador_de_menu_router_bot.js
 // ==================================================
 // Integrador completo PETBIO: usuarios, mascotas, menú y sesiones
@@ -5,15 +6,16 @@
 
 const fs = require('fs');
 const path = require('path');
-const { mqttCloud /*, mqttLocalDev, mqttLocalProd */ } = require('../config');
+const { mqttCloud } = require('../config');
 const saludoDelUsuario = require('./saludo_del_usuario');
+const menuInicio = require('./menu_inicio');
 
 // Funciones centralizadas
 const { iniciarRegistroMascota, registrarMascota, sugerirRaza } = require('./registro_mascotas_bot');
 const { iniciarRegistroUsuario } = require('./registro_usuario_bot');
 
 // =====================
-// Directorio de sesiones
+// Directorio de sesiones por usuario
 // =====================
 const SESSIONS_DIR = path.join(__dirname, 'sessions');
 if (!fs.existsSync(SESSIONS_DIR)) fs.mkdirSync(SESSIONS_DIR, { recursive: true });
@@ -23,23 +25,22 @@ function cargarSesion(userId) {
     const f = getSessionFile(userId);
     return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f)) : null;
 }
-function guardarSesion(userId, session) { fs.writeFileSync(getSessionFile(userId), JSON.stringify(session)); }
+function guardarSesion(userId, session) {
+    fs.writeFileSync(getSessionFile(userId), JSON.stringify(session, null, 2));
+}
+
+// =====================
+// Configuración sessionFileSafe para WhatsApp Web JS
+// =====================
+const DEFAULT_WWEBJS_SESSION_DIR = path.join(__dirname, '../.wwebjs_auth');
+if (!fs.existsSync(DEFAULT_WWEBJS_SESSION_DIR)) fs.mkdirSync(DEFAULT_WWEBJS_SESSION_DIR, { recursive: true });
+
+const sessionFileSafe = path.join(DEFAULT_WWEBJS_SESSION_DIR, 'session.json');
+console.log('📁 sessionFileSafe para WhatsApp Web JS:', sessionFileSafe);
 
 // =====================
 // 📶 Conexión MQTT
 // =====================
-/*
-[mqttLocalDev, mqttLocalProd].forEach((client, index) => {
-    const name = index === 0 ? 'Mosquitto DEV' : 'Mosquitto PROD';
-    client.on('connect', () => console.log(`✅ Conectado a ${name}`));
-    client.on('error', (err) => {
-        console.error(`❌ Error ${name}:`, err.message);
-        client.end(true);
-    });
-});
-*/
-
-// 👉 Solo usamos CloudMQTT
 if (mqttCloud) {
     mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
     mqttCloud.on('error', (err) => {
@@ -56,7 +57,7 @@ async function router(msg, userId) {
     const texto = (msg.body || '').trim();
     const lc = texto.toLowerCase();
 
-    // Comando global: cancelar o volver al menú
+    // Comandos globales: "menu" o "cancelar"
     if (lc === 'menu') {
         session.type = 'menu_inicio';
         session.step = null;
@@ -75,28 +76,19 @@ async function router(msg, userId) {
 
     try {
         switch (session.type) {
+
             // ===================== Menú principal =====================
             case 'menu_inicio':
             case 'esperando_opcion_menu':
-                await saludoDelUsuario(msg, getSessionFile(userId), session);
+                const sf = getSessionFile(userId) || sessionFileSafe;
+                console.log('📁 sessionFile recibido en menuInicio:', sf);
 
-                await msg.reply(
-                    '📌 Selecciona opción del menú:\n' +
-                    '1️⃣ Registrar usuario\n' +
-                    '2️⃣ Registrar mascota\n' +
-                    '3️⃣ Suscribirse'
-                );
+                // Saludo y actualización de sesión
+                await saludoDelUsuario(msg, sf, session);
 
-                // Determinar flujo según texto
-                if (texto === '1' || texto.includes('usuario')) {
-                    session.type = 'registro_usuario';
-                    session.step = 'username';
-                } else if (texto === '2' || texto.includes('mascota')) {
-                    session.type = 'registro_mascota';
-                    session.step = 'nombre';
-                } else if (texto === '3' || texto.includes('suscribirse')) {
-                    session.type = 'suscripcion';
-                }
+                // Mostrar menú principal y procesar opción
+                const handleOption = await menuInicio(msg, sf, session);
+                await handleOption(texto);
                 break;
 
             // ===================== Registro de usuario =====================
@@ -109,7 +101,7 @@ async function router(msg, userId) {
                 await iniciarRegistroMascota(msg, session, getSessionFile(userId), mqttCloud);
                 break;
 
-            // ===================== Suscripción (placeholder) =====================
+            // ===================== Suscripción =====================
             case 'suscripcion':
                 await msg.reply('🔔 Flujo de suscripción aún no implementado. Responde "menu" para volver al inicio.');
                 break;
@@ -119,6 +111,7 @@ async function router(msg, userId) {
                 await msg.reply('✅ Menú post-registro. Responde "menu" para volver al inicio.');
                 break;
 
+            // ===================== Flujo por defecto =====================
             default:
                 await msg.reply('❌ Flujo no reconocido. Escribe *menu* para volver al inicio.');
                 session.type = 'menu_inicio';
@@ -127,6 +120,7 @@ async function router(msg, userId) {
                 break;
         }
 
+        // Guardamos la sesión siempre
         guardarSesion(userId, session);
 
     } catch (e) {

@@ -29,19 +29,23 @@ client.on('connect', () => {
 });
 
 client.on('error', (err) => {
-  console.error('❌ Error MQTT:', err.message);
+  console.error('❌ Error historiaClinica -  MQTT:', err.message);
 });
 
 // ==========================
 // Configuración DB
 // ==========================
 const dbConfig = {
-  host: process.env.MYSQL_HOST || 'mysql_petbio_secure',
+  host: process.env.MYSQL_HOST || '127.0.0.1',
+//'mysql_petbio_secure' 5 octubre modificamos a 127.0.0.1 y 3306 estaba en 3310 ,
   user: process.env.MYSQL_USER || 'root',
   password: process.env.MYSQL_PASSWORD || 'R00t_Segura_2025!',
   database: process.env.MYSQL_DATABASE || 'db__produccion_petbio_segura_2025',
-  port: Number(process.env.MYSQL_PORT) || 3310
+  port: Number(process.env.MYSQL_PORT) || 3306
 };
+
+
+console.log('✅ Entró a historiaClinicaBot');
 
 // ==========================
 // Contadores de intentos por usuario

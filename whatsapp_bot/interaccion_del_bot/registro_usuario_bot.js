@@ -21,7 +21,8 @@ const PDFDocument = require('pdfkit');
 // ========================
 const dbConfig = {
   host: process.env.MYSQL_HOST || '127.0.0.1',
-  port: process.env.MYSQL_PORT || 3310,
+  port: process.env.MYSQL_PORT || 3306,
+// 5 de octubre el tenia puerto 3310 ahora apartir de la fecha probamos 3306
   user: process.env.MYSQL_USER || 'root',
   password: process.env.MYSQL_PASSWORD || 'R00t_Segura_2025!',
   database: process.env.MYSQL_DATABASE || 'db__produccion_petbio_segura_2025'

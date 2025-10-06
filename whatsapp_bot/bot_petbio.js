@@ -7,8 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
 const PDFDocument = require('pdfkit');
-//const { mqttCloud, mqttLocalDev, mqttLocalProd } = require('./config');
-const { mqttCloud } = require('../config');
+const { mqttCloud, mqttLocalDev, mqttLocalProd } = require('../config');
 const axios = require('axios');
 const { execFile } = require('child_process');
 const { URL } = require('url');
@@ -27,29 +26,40 @@ const dbPool = mysql.createPool({
   queueLimit: 0
 });
 
-/*
 // =====================
-// MQTT - Logs de conexión y reconexión automática (multi-broker)
+// MQTT - Conexión segura
 // =====================
-[mqttCloud, mqttLocalDev, mqttLocalProd].forEach((client, index) => {
-  const name = index === 0 ? 'CloudMQTT' : index === 1 ? 'Mosquitto DEV' : 'Mosquitto PROD';
-  client.on('connect', () => console.log(`✅ Conectado a ${name}`));
-  client.on('error', err => {
-    console.error(`❌ Error ${name}:`, err.message);
-    client.end(true);
-    setTimeout(() => client.reconnect(), 5000);
-  });
-});
-*/
+const brokers = [
+  { client: mqttCloud, name: 'CloudMQTT' },
+  { client: mqttLocalDev, name: 'Mosquitto DEV' },
+  { client: mqttLocalProd, name: 'Mosquitto PROD' }
+];
 
-// =====================
-// MQTT - Logs de conexión y reconexión automática (solo CloudMQTT)
-// =====================
-mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
-mqttCloud.on('error', (err) => {
-  console.error('❌ Error CloudMQTT:', err.message);
-  mqttCloud.end(true);
-  setTimeout(() => mqttCloud.reconnect(), 5000);
+brokers.forEach(({ client, name }) => {
+  // Solo conectar si hay credenciales definidas
+  if (!client.options.user || !client.options.password) {
+    console.warn(`⚠️ ${name} no tiene credenciales, no se conectará`);
+    return;
+  }
+
+  client.on('connect', () => console.log(`✅ Conectado a ${name}`));
+
+  client.on('error', (err) => {
+    console.error(`❌ Error ${name}:`, err.message);
+
+    try { client.end(true); } catch(e) { console.warn(`${name} end() fallo`, e.message); }
+
+    // Reintentar solo si el error no es "Not authorized"
+    if (!err.message.includes('Not authorized')) {
+      setTimeout(() => {
+        try { client.reconnect(); } catch(e) { console.warn(`${name} reconnect fallo`, e.message); }
+      }, 5000);
+    } else {
+      console.warn(`⚠️ ${name} credenciales incorrectas, no se reintentará automáticamente`);
+    }
+  });
+
+  client.on('close', () => console.log(`⚠️ Desconectado de ${name}`));
 });
 
 // =====================
