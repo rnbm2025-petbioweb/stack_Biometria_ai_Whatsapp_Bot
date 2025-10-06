@@ -13,7 +13,7 @@ async function getMySQLConnection() {
     const connection = await mysql.createConnection({
       host: process.env.MYSQL_HOST || '127.0.0.1', 
 // 'mysql_petbio_secure', 5 de octubre cambiamos de mysql_petbio_secure 3310 a usar 127.0.0.1 3306 
-      port: process.env.MYSQL_PORT || 3306,
+      port: process.env.MYSQL_PORT ||'3306',
       user: process.env.MYSQL_USER || 'root',
       password: process.env.MYSQL_PASSWORD || 'R00t_Segura_2025!',
       database: process.env.MYSQL_DATABASE || 'db__produccion_petbio_segura_2025',
@@ -34,7 +34,7 @@ async function getMySQLConnection() {
 const mqttCloudUrl = process.env.MQTT_CLOUD_BROKER || 'mqtts://duck-01.lmq.cloudamqp.com:8883';
 
 const mqttCloudOptions = {
-  username: process.env.MQTT_CLOUD_USER || 'xdagoqsj:xdagoqsj', // ✅ solo el username
+  username: process.env.MQTT_CLOUD_USER || 'xdagoqsj', // ✅ solo el username
   password: process.env.MQTT_CLOUD_PASS || 'flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L',
   protocol: 'mqtts',
   reconnectPeriod: Number(process.env.MQTT_RECONNECT_MS) || 5000,
@@ -69,7 +69,7 @@ mqttCloud.on('error', (err) => {
 // ✅ MQTT - Mosquitto Local DEV
 // ===============================
 const mqttLocalDev = mqtt.connect(
-  process.env.MQTT_LOCAL_DEV_BROKER || 'mqtt://mosquitto-stack:1883',
+  process.env.MQTT_LOCAL_DEV_BROKER || 'mqtt://127.0.0.1:1883',
   {
     username: process.env.MQTT_LOCAL_DEV_USER || 'petbio_user_dev',
     password: process.env.MQTT_LOCAL_DEV_PASS || 'petbio2025_dev!',
@@ -84,7 +84,7 @@ mqttLocalDev.on('error', (err) => console.error('❌ Error Mosquitto DEV:', err.
 // ✅ MQTT - Mosquitto Local PROD
 // ===============================
 const mqttLocalProd = mqtt.connect(
-  process.env.MQTT_LOCAL_BROKER || 'mqtt://mosquitto-stack:1883',
+  process.env.MQTT_LOCAL_BROKER || 'mqtt://127.0.0.1:1883',
   {
     username: process.env.MQTT_LOCAL_USER || 'petbio_user',
     password: process.env.MQTT_LOCAL_PASS || 'petbio2025!',
