@@ -326,8 +326,7 @@ whatsappClient.on('message', async msg => {
       );
     } catch (_) {}
   }
-});
-
+}
 
 setInterval(() => {
   const used = process.memoryUsage().rss / 1024 / 1024;
