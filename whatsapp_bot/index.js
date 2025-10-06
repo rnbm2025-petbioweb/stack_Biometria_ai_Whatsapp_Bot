@@ -231,10 +231,17 @@ whatsappClient.on('message', async msg => {
 });
 
 // ------------------ 📊 Monitoreo memoria ------------------
+/*
 setInterval(() => {
   const used = process.memoryUsage().rss / 1024 / 1024;
   console.log(`📊 Memoria usada: ${used.toFixed(2)} MB`);
 }, 10000);
+*/
+setInterval(() => {
+  const used = process.memoryUsage();
+  console.log(`🧠 Memoria usada: ${(used.rss / 1024 / 1024).toFixed(2)} MB`);
+}, 10000); // cada 10s
+
 
 // 🚀 Inicializar cliente WhatsApp
 whatsappClient.initialize();
