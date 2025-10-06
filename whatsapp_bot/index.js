@@ -333,5 +333,7 @@ setInterval(() => {
   console.log(`📊 Memoria usada: ${used.toFixed(2)} MB`);
 }, 10000);
 
+});
+
 // 🚀 Inicializar cliente WhatsApp
 whatsappClient.initialize();
