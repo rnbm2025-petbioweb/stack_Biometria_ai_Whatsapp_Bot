@@ -224,7 +224,7 @@ whatsappClient.on('message', async msg => {
 
   } catch (err) {
     console.error('⚠️ Error en el bot:', err);
-    try { 
+    try {
       await msg.reply('⚠️ Ocurrió un error. Escribe *menu* para reiniciar.');
     } catch (_) {}
   }
