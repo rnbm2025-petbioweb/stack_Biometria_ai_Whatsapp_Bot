@@ -50,10 +50,10 @@ services:
         value: "1000"
 
       # ===============================
-      # MySQL   tenia ip .13
+      # MySQL
       # ===============================
       - key: MYSQL_HOST
-        value: 172.19.0.2
+        value: 172.22.0.02
       - key: MYSQL_PORT
         value: "3306"
       - key: MYSQL_USER
@@ -67,7 +67,7 @@ services:
       # MQTT Cloud (CloudMQTT)
       # ===============================
       - key: MQTT_CLOUD_BROKER
-        value: mqtts://duck-01.lmq.cloudamqp.com:8883  #8883
+        value: mqtts://duck.lmq.cloudamqp.com:8883  #8883
       - key: MQTT_CLOUD_USER
         value: xdagoqsj
       - key: MQTT_CLOUD_PASS
