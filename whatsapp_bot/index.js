@@ -61,25 +61,24 @@ if (mqttCloud) {
 }
 
 // ==========================================================
+// 📁 ASEGURAR DIRECTORIO DE SESIÓN (Evita error EACCES)
+// ==========================================================
+const sessionDir = '/tmp/session'; // Render permite escribir en /tmp
+
+try {
+  if (!fs.existsSync(sessionDir)) {
+    fs.mkdirSync(sessionDir, { recursive: true });
+    console.log('📁 Carpeta de sesión creada en:', sessionDir);
+  } else {
+    console.log('📁 Carpeta de sesión ya existe:', sessionDir);
+  }
+} catch (err) {
+  console.error('❌ Error creando carpeta de sesión:', err);
+}
+
+// ==========================================================
 // 🤖 CLIENTE WHATSAPP
 // ==========================================================
-
-/*
-const whatsappClient = new Client({
-  puppeteer: {
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage'
-    ]
-  },
-  authStrategy: new LocalAuth({
-    userDataDir: '/usr/src/app/session'  // 📁 Carpeta persistente para Docker
-  })
-});
-*/
-
 const { loadSession, saveSession, SESSION_FILE } = require('./SupabaseAuth');
 let whatsappClient; // global
 
@@ -91,19 +90,9 @@ let whatsappClient; // global
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
     },
-
-    /*   se reemplaza para poder crear el directorio de tmp para la session de  client
     authStrategy: new LocalAuth({
-      dataPath: loadedSessionFile ? path.dirname(loadedSessionFile) : '/usr/src/app/session'   
-    })    */
-
-    authStrategy: new LocalAuth({
-      dataPath: loadedSessionFile ? path.dirname(loadedSessionFile) : '/tmp/session'
+      dataPath: loadedSessionFile ? path.dirname(loadedSessionFile) : sessionDir
     })
-
-
-    
-    
   });
 
   whatsappClient.on('ready', async () => {
@@ -199,15 +188,12 @@ const deleteSession = async (userId) => {
 };
 
 // ==========================================================
-// 📋 COMANDOS
+// 💬 COMANDOS Y FLUJOS
 // ==========================================================
 const CMD_MENU = ['menu', 'inicio', 'volver', 'home'];
 const CMD_CANCEL = ['cancelar', 'salir', 'stop', 'terminar', 'abortar'];
 const CMD_SALUDO = ['hola', 'buenas', 'saludos', 'qué tal', 'hey'];
 
-// ==========================================================
-// 💬 FLUJO PRINCIPAL DE MENSAJES
-// ==========================================================
 const saludoDelUsuario = require('./interaccion_del_bot/saludo_del_usuario');
 const menuInicioModule = require('./interaccion_del_bot/menu_inicio');
 const { iniciarRegistroMascota } = require('./interaccion_del_bot/registro_mascotas_bot');
@@ -231,22 +217,19 @@ whatsappClient?.on('message', async msg => {
     const userMsg = (msg.body || '').trim();
     const lcMsg = userMsg.toLowerCase();
 
-    // 🧠 NUEVA VALIDACIÓN — saludo inicial
     if (!session.lastGreeted && CMD_SALUDO.some(s => lcMsg.includes(s))) {
       session.lastGreeted = true;
-      await msg.reply('👋 ¡Hola! Soy *PETBIO Bot*. 🐾\n¿En qué puedo ayudarte hoy?\nEscribe *menu* para ver las opciones disponibles.');
+      await msg.reply('👋 ¡Hola! Soy *PETBIO Bot*. 🐾\nEscribe *menu* para ver las opciones disponibles.');
       await saveUserSession(msg.from, session);
       return;
     }
 
-    // 🛑 CANCELAR
     if (CMD_CANCEL.includes(lcMsg)) {
       await deleteSession(msg.from);
       await msg.reply('🛑 Registro cancelado. Escribe *menu* para volver al inicio.');
       return;
     }
 
-    // 📋 MENU
     if (CMD_MENU.includes(lcMsg)) {
       session.type = 'menu_inicio';
       session.step = null;
@@ -258,7 +241,6 @@ whatsappClient?.on('message', async msg => {
       return;
     }
 
-    // 🔁 Router principal
     switch (session.type) {
       case 'menu_inicio':
         const handleMenu = await menuInicioModule(msg, null, session);
@@ -293,7 +275,7 @@ whatsappClient?.on('message', async msg => {
             await msg.reply("⚠️ Debes indicar un período válido: 3, 6 o 12 meses.");
           }
         } else {
-          await msg.reply("❌ Opción inválida en tarifas. Responde con 3, 6 o 12 meses, o escribe *menu*.");
+          await msg.reply("❌ Opción inválida. Responde con 3, 6 o 12 meses, o escribe *menu*.");
         }
         break;
       default:
@@ -317,7 +299,7 @@ whatsappClient?.on('message', async msg => {
 setInterval(() => {
   const used = process.memoryUsage();
   console.log(`🧠 Memoria usada: ${(used.rss / 1024 / 1024).toFixed(2)} MB`);
-}, 10000); // cada 10s
+}, 10000);
 
 // ==========================================================
 // 🚀 INICIALIZAR CLIENTE WHATSAPP
