@@ -30,11 +30,15 @@ async function getMySQLConnection() {
 // ✅ MQTT — LavinMQ / CloudAMQP (Producción)
 // ==========================================================
 // 👉 IMPORTANTE: En LavinMQ, el formato de username es "usuario:vhost"
+
+username: process.env.MQTT_CLOUD_USER || 'xdagoqsj:xdagoqsj',
+
+
 //    En tu caso: username = "xdagoqsj:xdagoqsj"
 //    Broker: duck.lmq.cloudamqp.com
 //    Puerto seguro (TLS): 8883
 
-const mqttCloudUrl = process.env.MQTT_CLOUD_BROKER || 'mqtts://duck.lmq.cloudamqp.com:8883';
+const mqttCloudUrl = process.env.MQTT_CLOUD_BROKER || 'mqtts://duck.lmq-01.cloudamqp.com:8883';
 
 const mqttCloudOptions = {
   username: process.env.MQTT_CLOUD_USER || 'xdagoqsj:xdagoqsj', // 🔹 formato correcto LavinMQ
