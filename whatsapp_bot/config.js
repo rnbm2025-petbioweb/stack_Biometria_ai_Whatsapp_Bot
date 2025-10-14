@@ -68,6 +68,9 @@ mqttCloud.on('error', (err) => {
 // ===============================
 // ✅ MQTT - Mosquitto Local DEV
 // ===============================
+
+/*
+
 const mqttLocalDev = mqtt.connect(
   process.env.MQTT_LOCAL_DEV_BROKER || 'mqtt://127.0.0.1:1883',
   {
@@ -95,6 +98,7 @@ const mqttLocalProd = mqtt.connect(
 mqttLocalProd.on('connect', () => console.log('✅ Conectado a Mosquitto PROD'));
 mqttLocalProd.on('error', (err) => console.error('❌ Error Mosquitto PROD:', err.message));
 
+*/
 // ===============================
 // ✅ SUPABASE (Postgres)
 // ===============================
@@ -124,8 +128,8 @@ async function testSupabaseConnection() {
 module.exports = {
   getMySQLConnection,
   mqttCloud,
-  mqttLocalDev,
-  mqttLocalProd,
+//  mqttLocalDev,
+ // mqttLocalProd,
   supabasePool,
   testSupabaseConnection,
 };
