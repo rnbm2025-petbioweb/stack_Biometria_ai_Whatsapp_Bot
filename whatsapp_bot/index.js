@@ -91,9 +91,19 @@ let whatsappClient; // global
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
     },
+
+    /*   se reemplaza para poder crear el directorio de tmp para la session de  client
     authStrategy: new LocalAuth({
-      dataPath: loadedSessionFile ? path.dirname(loadedSessionFile) : '/usr/src/app/session'
+      dataPath: loadedSessionFile ? path.dirname(loadedSessionFile) : '/usr/src/app/session'   
+    })    */
+
+    authStrategy: new LocalAuth({
+      dataPath: loadedSessionFile ? path.dirname(loadedSessionFile) : '/tmp/session'
     })
+
+
+    
+    
   });
 
   whatsappClient.on('ready', async () => {
