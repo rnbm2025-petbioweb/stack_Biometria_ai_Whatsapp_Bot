@@ -1,8 +1,8 @@
-// index.js - PETBIO WhatsApp Bot Integrado 🌐 (Docker-ready)
+// ==========================================================
+// 🤖 PETBIO WhatsApp Bot Integrado 🌐 (Docker-ready)
 // ==========================================================
 
 require('dotenv').config();
-
 const path = require('path');
 const fs = require('fs');
 const { Client, LocalAuth } = require('whatsapp-web.js');
@@ -11,7 +11,9 @@ const QRCode = require('qrcode');
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 
-// ------------------ 🌐 Configuración Supabase ------------------
+// ==========================================================
+// 🌐 CONFIGURACIÓN SUPABASE
+// ==========================================================
 const supabaseUrl = 'https://jbsxvonnrahhfffeacdy.supabase.co';
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -23,7 +25,9 @@ if (!supabaseKey) {
   process.exit(1);
 }
 
-// 🔄 Validación periódica de conexión Supabase
+// ==========================================================
+// 🔄 VALIDACIÓN PERIÓDICA DE CONEXIÓN SUPABASE
+// ==========================================================
 setInterval(async () => {
   try {
     const { error } = await supabase.from('sessions').select('count').limit(1);
@@ -34,7 +38,9 @@ setInterval(async () => {
   }
 }, 60000); // cada 1 minuto
 
-// ------------------ 📡 Configuración MQTT ------------------
+// ==========================================================
+// 📡 CONFIGURACIÓN MQTT
+// ==========================================================
 const { mqttCloud } = require('./config');
 
 if (mqttCloud) {
@@ -54,7 +60,9 @@ if (mqttCloud) {
   });
 }
 
-// ------------------ 🤖 Cliente WhatsApp ------------------
+// ==========================================================
+// 🤖 CLIENTE WHATSAPP
+// ==========================================================
 
 /*
 const whatsappClient = new Client({
@@ -73,8 +81,7 @@ const whatsappClient = new Client({
 */
 
 const { loadSession, saveSession, SESSION_FILE } = require('./SupabaseAuth');
-
-let whatsappClient; // definido globalmente para usar en otras partes
+let whatsappClient; // global
 
 (async () => {
   const loadedSessionFile = await loadSession();
@@ -103,7 +110,9 @@ let whatsappClient; // definido globalmente para usar en otras partes
   whatsappClient.initialize();
 })();
 
-// ------------------ 🌐 Express Healthcheck y QR ------------------
+// ==========================================================
+// 🌐 EXPRESS HEALTHCHECK + QR
+// ==========================================================
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -124,7 +133,9 @@ app.get('/qr', (req, res) => {
 
 app.listen(PORT, () => console.log(`🌐 Healthcheck en puerto ${PORT}`));
 
-// ------------------ 📲 Eventos WhatsApp ------------------
+// ==========================================================
+// 📲 EVENTOS QR WHATSAPP
+// ==========================================================
 whatsappClient?.on('qr', async qr => {
   console.log('📲 Escanea este código QR para vincular tu número:');
   qrcode.generate(qr, { small: true });
@@ -133,14 +144,15 @@ whatsappClient?.on('qr', async qr => {
 });
 
 whatsappClient?.on('ready', () => console.log('✅ Cliente WhatsApp listo y conectado!'));
-
 whatsappClient?.on('disconnected', async reason => {
   console.error('⚠️ Cliente desconectado:', reason);
   try { await whatsappClient.destroy(); } catch (_) {}
   setTimeout(() => whatsappClient.initialize(), 5000);
 });
 
-// ------------------ 🧠 Manejo de sesiones en Supabase ------------------
+// ==========================================================
+// 🧠 MANEJO DE SESIONES SUPABASE
+// ==========================================================
 const SESSION_TTL = 1000 * 60 * 60 * 12; // 12 horas
 
 const getSession = async (userId) => {
@@ -176,11 +188,16 @@ const deleteSession = async (userId) => {
   }
 };
 
-// ------------------ 📋 Comandos globales ------------------
+// ==========================================================
+// 📋 COMANDOS
+// ==========================================================
 const CMD_MENU = ['menu', 'inicio', 'volver', 'home'];
 const CMD_CANCEL = ['cancelar', 'salir', 'stop', 'terminar', 'abortar'];
+const CMD_SALUDO = ['hola', 'buenas', 'saludos', 'qué tal', 'hey'];
 
-// ------------------ 💬 Flujo principal ------------------
+// ==========================================================
+// 💬 FLUJO PRINCIPAL DE MENSAJES
+// ==========================================================
 const saludoDelUsuario = require('./interaccion_del_bot/saludo_del_usuario');
 const menuInicioModule = require('./interaccion_del_bot/menu_inicio');
 const { iniciarRegistroMascota } = require('./interaccion_del_bot/registro_mascotas_bot');
@@ -190,7 +207,9 @@ const historiaClinicaBot = require('./interaccion_del_bot/historia_clinica_bot')
 const crearCitaBot = require('./interaccion_del_bot/crear_cita_bot');
 const { mostrarMenuTarifas, procesarSuscripcion } = require('./interaccion_del_bot/tarifas_menu');
 
-// ------------------ 📩 Evento de mensajes ------------------
+// ==========================================================
+// 📩 EVENTO DE MENSAJE
+// ==========================================================
 whatsappClient?.on('message', async msg => {
   try {
     let session = await getSession(msg.from);
@@ -198,10 +217,17 @@ whatsappClient?.on('message', async msg => {
     session.step = session.step || null;
     session.data = session.data || {};
     session.lastActive = Date.now();
-    session.lastGreeted = session.lastGreeted || false;
 
     const userMsg = (msg.body || '').trim();
     const lcMsg = userMsg.toLowerCase();
+
+    // 🧠 NUEVA VALIDACIÓN — saludo inicial
+    if (!session.lastGreeted && CMD_SALUDO.some(s => lcMsg.includes(s))) {
+      session.lastGreeted = true;
+      await msg.reply('👋 ¡Hola! Soy *PETBIO Bot*. 🐾\n¿En qué puedo ayudarte hoy?\nEscribe *menu* para ver las opciones disponibles.');
+      await saveUserSession(msg.from, session);
+      return;
+    }
 
     // 🛑 CANCELAR
     if (CMD_CANCEL.includes(lcMsg)) {
@@ -275,17 +301,15 @@ whatsappClient?.on('message', async msg => {
   }
 });
 
-// ------------------ 📊 Monitoreo memoria ------------------
-/*
-setInterval(() => {
-  const used = process.memoryUsage().rss / 1024 / 1024;
-  console.log(`📊 Memoria usada: ${used.toFixed(2)} MB`);
-}, 10000);
-*/
+// ==========================================================
+// 📊 MONITOREO DE MEMORIA
+// ==========================================================
 setInterval(() => {
   const used = process.memoryUsage();
   console.log(`🧠 Memoria usada: ${(used.rss / 1024 / 1024).toFixed(2)} MB`);
 }, 10000); // cada 10s
 
-// 🚀 Inicializar cliente WhatsApp
+// ==========================================================
+// 🚀 INICIALIZAR CLIENTE WHATSAPP
+// ==========================================================
 whatsappClient?.initialize();
