@@ -31,7 +31,7 @@ async function getMySQLConnection() {
 // ✅ MQTT - LavinMQ Cloud (Render)
 // ===============================
 const mqttCloudUrl =
-  process.env.MQTT_CLOUD_BROKER || 'mqtts://duck.lmq.cloudamqp.com:8883';
+  process.env.MQTT_CLOUD_BROKER || 'mqtts://duck.lmq-01.cloudamqp.com:8883';
 
 const mqttCloudOptions = {
   username: process.env.MQTT_CLOUD_USER || 'xdagoqsj:xdagoqsj', // 👉 LavinMQ usa usuario:vhost
