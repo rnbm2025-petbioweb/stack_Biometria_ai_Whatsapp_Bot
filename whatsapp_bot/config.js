@@ -26,12 +26,54 @@ async function getMySQLConnection() {
   }
 }
 
+
+// ===============================
+// ✅ MQTT - LavinMQ Cloud (Render)
+// ===============================
+const mqttCloudUrl =
+  process.env.MQTT_CLOUD_BROKER || 'mqtts://duck.lmq.cloudamqp.com:8883';
+
+const mqttCloudOptions = {
+  username: process.env.MQTT_CLOUD_USER || 'xdagoqsj:xdagoqsj', // 👉 LavinMQ usa usuario:vhost
+  password: process.env.MQTT_CLOUD_PASS || 'flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L',
+  protocol: 'mqtts',
+  reconnectPeriod: Number(process.env.MQTT_RECONNECT_MS) || 5000,
+  connectTimeout: Number(process.env.MQTT_CONNECT_TIMEOUT_MS) || 30000,
+  rejectUnauthorized: false,
+  clientId:
+    (process.env.MQTT_CLIENT_ID || 'petbio_bot_') +
+    Math.random().toString(16).substring(2, 8),
+};
+
+console.log('🔑 MQTT LavinMQ Config ->', {
+  broker: mqttCloudUrl,
+  user: mqttCloudOptions.username,
+  pass: mqttCloudOptions.password ? '✅ cargada' : '❌ no definida',
+  protocol: mqttCloudOptions.protocol,
+  clientId: mqttCloudOptions.clientId,
+});
+
+const mqttCloud = mqtt.connect(mqttCloudUrl, mqttCloudOptions);
+
+// 🛠️ Eventos
+mqttCloud.on('connect', () => console.log('✅ Conectado a LavinMQ'));
+mqttCloud.on('reconnect', () => console.log('🔁 Reintentando conexión MQTT...'));
+mqttCloud.on('close', () => console.warn('⚠️ Conexión MQTT cerrada'));
+mqttCloud.on('offline', () => console.warn('⚠️ MQTT offline'));
+mqttCloud.on('error', (err) => {
+  console.error('❌ Error LavinMQ:', err?.message || err);
+  if (err?.message?.includes('Not authorized')) {
+    console.error('🚨 ERROR: Credenciales MQTT inválidas. Revisa MQTT_CLOUD_USER y MQTT_CLOUD_PASS en tu .env');
+  }
+});
+
+
+/*
 // ==========================================================
 // ✅ MQTT — LavinMQ / CloudAMQP (Producción)
 // ==========================================================
 // 👉 IMPORTANTE: En LavinMQ, el formato de username es "usuario:vhost"
 
-username: process.env.MQTT_CLOUD_USER || 'xdagoqsj:xdagoqsj',
 
 
 //    En tu caso: username = "xdagoqsj:xdagoqsj"
@@ -41,7 +83,9 @@ username: process.env.MQTT_CLOUD_USER || 'xdagoqsj:xdagoqsj',
 const mqttCloudUrl = process.env.MQTT_CLOUD_BROKER || 'mqtts://duck.lmq-01.cloudamqp.com:8883';
 
 const mqttCloudOptions = {
-  username: process.env.MQTT_CLOUD_USER || 'xdagoqsj:xdagoqsj', // 🔹 formato correcto LavinMQ
+  //username: process.env.MQTT_CLOUD_USER || 'xdagoqsj:xdagoqsj', // 🔹 formato correcto LavinMQ
+  
+  username: process.env.MQTT_CLOUD_USER || 'xdagoqsj:xdagoqsj',
   password: process.env.MQTT_CLOUD_PASS || 'flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L',
   protocol: 'mqtts',
   reconnectPeriod: Number(process.env.MQTT_RECONNECT_MS) || 5000, // reintento cada 5s
@@ -71,8 +115,8 @@ mqttCloud.on('error', (err) => {
   if (err?.message?.includes('Not authorized')) {
     console.error('🚨 ERROR: Credenciales MQTT inválidas. Revisa MQTT_CLOUD_USER y MQTT_CLOUD_PASS en tu .env');
   }
-});
-
+});   
+*/
 // ==========================================================
 // ✅ (Opcional) MQTT — Mosquitto Local DEV y PROD
 // ==========================================================
