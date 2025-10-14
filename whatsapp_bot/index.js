@@ -23,6 +23,17 @@ if (!supabaseKey) {
   process.exit(1);
 }
 
+// 🔄 Validación periódica de conexión Supabase
+setInterval(async () => {
+  try {
+    const { error } = await supabase.from('sessions').select('count').limit(1);
+    if (error) throw error;
+    console.log('✅ Conexión Supabase OK');
+  } catch (err) {
+    console.error('⚠️ Error conexión Supabase:', err.message);
+  }
+}, 60000); // cada 1 minuto
+
 // ------------------ 📡 Configuración MQTT ------------------
 const { mqttCloud } = require('./config');
 
@@ -46,7 +57,6 @@ if (mqttCloud) {
 // ------------------ 🤖 Cliente WhatsApp ------------------
 
 /*
-
 const whatsappClient = new Client({
   puppeteer: {
     headless: true,
@@ -60,16 +70,16 @@ const whatsappClient = new Client({
     userDataDir: '/usr/src/app/session'  // 📁 Carpeta persistente para Docker
   })
 });
-
-
 */
 
 const { loadSession, saveSession, SESSION_FILE } = require('./SupabaseAuth');
 
+let whatsappClient; // definido globalmente para usar en otras partes
+
 (async () => {
   const loadedSessionFile = await loadSession();
 
-  const whatsappClient = new Client({
+  whatsappClient = new Client({
     puppeteer: {
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
@@ -93,8 +103,6 @@ const { loadSession, saveSession, SESSION_FILE } = require('./SupabaseAuth');
   whatsappClient.initialize();
 })();
 
-
-
 // ------------------ 🌐 Express Healthcheck y QR ------------------
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -117,16 +125,16 @@ app.get('/qr', (req, res) => {
 app.listen(PORT, () => console.log(`🌐 Healthcheck en puerto ${PORT}`));
 
 // ------------------ 📲 Eventos WhatsApp ------------------
-whatsappClient.on('qr', async qr => {
+whatsappClient?.on('qr', async qr => {
   console.log('📲 Escanea este código QR para vincular tu número:');
   qrcode.generate(qr, { small: true });
   try { await QRCode.toFile(qrPath, qr, { width: 300 }); }
   catch (err) { console.error('❌ Error generando QR PNG:', err); }
 });
 
-whatsappClient.on('ready', () => console.log('✅ Cliente WhatsApp listo y conectado!'));
+whatsappClient?.on('ready', () => console.log('✅ Cliente WhatsApp listo y conectado!'));
 
-whatsappClient.on('disconnected', async reason => {
+whatsappClient?.on('disconnected', async reason => {
   console.error('⚠️ Cliente desconectado:', reason);
   try { await whatsappClient.destroy(); } catch (_) {}
   setTimeout(() => whatsappClient.initialize(), 5000);
@@ -147,7 +155,7 @@ const getSession = async (userId) => {
   return {};
 };
 
-const saveSession = async (userId, session) => {
+const saveUserSession = async (userId, session) => {
   try {
     const { error } = await supabase.from('sessions').upsert({
       user_id: userId,
@@ -183,7 +191,7 @@ const crearCitaBot = require('./interaccion_del_bot/crear_cita_bot');
 const { mostrarMenuTarifas, procesarSuscripcion } = require('./interaccion_del_bot/tarifas_menu');
 
 // ------------------ 📩 Evento de mensajes ------------------
-whatsappClient.on('message', async msg => {
+whatsappClient?.on('message', async msg => {
   try {
     let session = await getSession(msg.from);
     session.type = session.type || 'menu_inicio';
@@ -210,7 +218,7 @@ whatsappClient.on('message', async msg => {
       session.lastActive = Date.now();
       session.lastGreeted = false;
       await saludoDelUsuario(msg, null);
-      await saveSession(msg.from, session);
+      await saveUserSession(msg.from, session);
       return;
     }
 
@@ -257,7 +265,7 @@ whatsappClient.on('message', async msg => {
         break;
     }
 
-    await saveSession(msg.from, session);
+    await saveUserSession(msg.from, session);
 
   } catch (err) {
     console.error('⚠️ Error en el bot:', err);
@@ -279,6 +287,5 @@ setInterval(() => {
   console.log(`🧠 Memoria usada: ${(used.rss / 1024 / 1024).toFixed(2)} MB`);
 }, 10000); // cada 10s
 
-
 // 🚀 Inicializar cliente WhatsApp
-whatsappClient.initialize();
+whatsappClient?.initialize();
