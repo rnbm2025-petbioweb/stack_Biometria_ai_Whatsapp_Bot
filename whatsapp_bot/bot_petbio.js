@@ -30,9 +30,9 @@ const dbPool = mysql.createPool({
 // MQTT - Conexión segura
 // =====================
 const brokers = [
-  { client: mqttCloud, name: 'CloudMQTT' },
-  { client: mqttLocalDev, name: 'Mosquitto DEV' },
-  { client: mqttLocalProd, name: 'Mosquitto PROD' }
+  { client: mqttCloud, name: 'CloudMQTT' }
+ /* { client: mqttLocalDev, name: 'Mosquitto DEV' },
+  {  client: mqttLocalProd, name: 'Mosquitto PROD' }   */
 ];
 
 brokers.forEach(({ client, name }) => {
