@@ -44,6 +44,9 @@ if (mqttCloud) {
 }
 
 // ------------------ 🤖 Cliente WhatsApp ------------------
+
+/*
+
 const whatsappClient = new Client({
   puppeteer: {
     headless: true,
@@ -57,6 +60,40 @@ const whatsappClient = new Client({
     userDataDir: '/usr/src/app/session'  // 📁 Carpeta persistente para Docker
   })
 });
+
+
+*/
+
+const { loadSession, saveSession, SESSION_FILE } = require('./SupabaseAuth');
+
+(async () => {
+  const loadedSessionFile = await loadSession();
+
+  const whatsappClient = new Client({
+    puppeteer: {
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    },
+    authStrategy: new LocalAuth({
+      dataPath: loadedSessionFile ? path.dirname(loadedSessionFile) : '/usr/src/app/session'
+    })
+  });
+
+  whatsappClient.on('ready', async () => {
+    console.log('✅ Cliente WhatsApp listo y conectado!');
+    await saveSession();
+  });
+
+  whatsappClient.on('disconnected', async () => {
+    console.log('⚠️ Cliente desconectado. Reintentando en 5s...');
+    await saveSession();
+    setTimeout(() => whatsappClient.initialize(), 5000);
+  });
+
+  whatsappClient.initialize();
+})();
+
+
 
 // ------------------ 🌐 Express Healthcheck y QR ------------------
 const app = express();
