@@ -1,0 +1,110 @@
+services:
+  - type: web
+    name: whatsapp-bot
+    env: node
+    plan: free
+    rootDir: whatsapp_bot   # ✅ Directorio donde está package.json
+
+    # =========================================================
+    # 🔧 COMANDO DE BUILD (se ejecuta antes del despliegue)
+    # =========================================================
+    buildCommand: |
+      echo "🛠️ [BUILD] Iniciando proceso de construcción del bot PETBIO..."
+      echo "🔍 Verificando permisos del script de instalación..."
+      chmod +x ./render-build.sh && echo "✅ [OK] Permisos asignados." || echo "⚠️ [WARN] No se pudo asignar permisos a render-build.sh."
+
+      echo "🔧 [1/3] Ejecutando render-build.sh (instalación de dependencias del sistema)..."
+      ./render-build.sh && echo "✅ [1/3] Dependencias del sistema instaladas correctamente." || { echo "❌ [ERROR] Falló la instalación del sistema."; exit 1; }
+
+      echo "📦 [2/3] Instalando dependencias de Node (modo congelado)..."
+      yarn install --frozen-lockfile && echo "✅ [2/3] Dependencias Node instaladas correctamente." || { echo "❌ [ERROR] Falló la instalación de dependencias Node."; exit 1; }
+
+      echo "🌐 [3/3] Instalando Chromium (Puppeteer Chrome)..."
+      npx puppeteer browsers install chrome && echo "✅ [3/3] Puppeteer Chrome instalado correctamente." || { echo "❌ [ERROR] Falló la instalación de Puppeteer Chrome."; exit 1; }
+
+      echo "🎯 [BUILD COMPLETADO] Todos los pasos de compilación se ejecutaron correctamente."
+
+    # =========================================================
+    # 🚀 COMANDO DE INICIO (ejecuta el bot)
+    # =========================================================
+    startCommand: |
+      echo "🚀 [START] Iniciando PETBIO WhatsApp Bot..."
+      chmod +x ./render-start.sh && echo "✅ [OK] Permisos de render-start.sh verificados." || echo "⚠️ [WARN] No se pudieron asignar permisos a render-start.sh."
+      ./render-start.sh && echo "✅ [START] Bot iniciado correctamente." || { echo "❌ [ERROR] Falló el inicio del bot."; exit 1; }
+
+    # =========================================================
+    # 🌍 VARIABLES DE ENTORNO
+    # =========================================================
+    envVars:
+      # ===============================
+      # Node / Puppeteer
+      # ===============================
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+        value: "true"                        # ✅ Evita descarga duplicada
+      - key: PUPPETEER_EXECUTABLE_PATH
+        value: /opt/render/.cache/puppeteer/chrome/linux-141.0.7390.78/chrome-linux64/chrome  # ✅ Ruta real del Chrome instalado
+
+      # ===============================
+      # API Keys / Servicios externos
+      # ===============================
+      - key: OPENAI_API_KEY
+        value: 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
+
+      - key: TWILIO_SID
+        value: ACe15576d5f4212f1aa78999a3f53820d1
+      - key: TWILIO_AUTH
+        value: f462e76653a85ac6172d441a7bd67332
+      - key: TWILIO_NUMBER
+        value: whatsapp:+14155238886
+      - key: ADMIN_NUMBER
+        value: whatsapp:+573007019277
+      - key: VERIFY_SERVICE_SID
+        value: VA4c43e35a016e2242bb25a929b9b59cba
+
+      # ===============================
+      # URLs de integración
+      # ===============================
+      - key: CATALOG_URL
+        value: http://php_integrator/catalogos.php
+      - key: SUSCRIPCION_URL
+        value: http://php_integrator/whatsapp-suscripcion.php
+
+      # ===============================
+      # MySQL Local / Docker interno
+      # ===============================
+      - key: MYSQL_HOST
+        value: 172.22.0.02
+      - key: MYSQL_PORT
+        value: "3306"
+      - key: MYSQL_USER
+        value: root
+      - key: MYSQL_PASSWORD
+        value: R00t_Segura_2025!
+      - key: MYSQL_DATABASE
+        value: db__produccion_petbio_segura_2025
+
+      # ===============================
+      # MQTT LavinMQ Cloud
+      # ===============================
+      - key: MQTT_HOST
+        value: duck.lmq.cloudamqp.com
+      - key: MQTT_PORT
+        value: "8883"
+      - key: MQTT_USER
+        value: xdagoqsj
+      - key: MQTT_PASS
+        value: flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L
+      - key: MQTT_TOPIC
+        value: petbio/test
+
+      # ===============================
+      # Supabase
+      # ===============================
+      - key: SUPABASE_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      - key: SUPABASE_DB_URL
+        value: postgresql://postgres:R00t_Segura_2025!@db.jbsxvonnrahhfffeacdy.supabase.co:5432/postgres
