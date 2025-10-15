@@ -1,7 +1,6 @@
 // ==========================================================
 // 🤖 PETBIO WhatsApp Bot + Supabase + MQTT LavinMQ
-// ==========================================================
-// 🧩 Versión optimizada para Render (2025-10)
+// Versión Render-ready con sesión persistente
 // ==========================================================
 
 require('dotenv').config();
@@ -38,7 +37,6 @@ const MQTT_TOPIC = process.env.MQTT_TOPIC || 'petbio/test';
 
 let mqttCloud = null;
 
-// Mejora: Intento inicial de conexión a MQTT antes de continuar con WhatsApp
 const initMQTT = () => {
   try {
     const mqttOptions = {
@@ -118,35 +116,33 @@ const deleteSession = async (userId) => {
 // ==========================================================
 // 📁 SESIÓN LOCAL DEL CLIENTE WHATSAPP
 // ==========================================================
-// Mejora: Si quieres persistencia entre redeploys, usar disco persistente de Render
+// Render proporciona disco persistente en /tmp/session
 const sessionDir = '/tmp/session';
 if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
+console.log(`📁 Sesiones WhatsApp persistentes en: ${sessionDir}`);
 
 // ==========================================================
 // 🧩 DETECCIÓN DE CHROME EN RENDER SIMPLIFICADA
 // ==========================================================
-// Mejora: Eliminamos lógica extra de fs.readdirSync y usamos Puppeteer con PUPPETEER_EXECUTABLE_PATH
 let chromePath;
 try {
   chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath();
   console.log(`🔍 Chrome detectado en: ${chromePath}`);
 } catch (err) {
   console.error('❌ Chrome no encontrado automáticamente:', err.message);
-  console.error('👉 Asegúrate de ejecutar "npx puppeteer install" en build command de Render');
 }
 
 // ==========================================================
-// 🤖 CLIENTE WHATSAPP (config Render-ready)
+// 🤖 CLIENTE WHATSAPP
 // ==========================================================
 let whatsappClient;
-
 try {
   whatsappClient = new Client({
     authStrategy: new LocalAuth({ dataPath: sessionDir }),
     puppeteer: {
       executablePath: chromePath,
       headless: true,
-      dumpio: true, // Mejora: logs completos de Puppeteer para debug en Render
+      dumpio: true,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -163,7 +159,6 @@ try {
   });
 } catch (err) {
   console.error('⚠️ Puppeteer no pudo inicializar correctamente:', err.message);
-  whatsappClient = null;
 }
 
 // ==========================================================
@@ -178,7 +173,6 @@ app.get('/health', (req, res) => {
     status: '✅ PETBIO Bot activo',
     supabase: !!supabaseKey,
     mqtt: mqttCloud?.connected || false,
-    // Mejora: healthcheck más preciso usando initialized
     whatsapp: whatsappClient?.initialized ? "✅ Conectado" : "⏳ Esperando conexión"
   });
 });
@@ -321,7 +315,7 @@ process.on('unhandledRejection', (reason) => {
 // ==========================================================
 if (whatsappClient) {
   whatsappClient.initialize();
-  console.log('🚀 PETBIO WhatsApp Bot inicializado.');
+  console.log('🚀 PETBIO WhatsApp Bot inicializado con sesión persistente.');
 } else {
   console.warn('⚠️ WhatsApp no se inicializó (Chromium ausente o fallo en Puppeteer).');
   console.warn('👉 Revisa que el build de Render ejecute correctamente el script "postinstall": "puppeteer install"');
