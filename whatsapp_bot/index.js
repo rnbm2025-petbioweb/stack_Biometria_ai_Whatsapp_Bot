@@ -117,23 +117,33 @@ const sessionDir = '/tmp/session';
 if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
 // ==========================================================
-// 🤖 CLIENTE WHATSAPP
+// 🤖 CLIENTE WHATSAPP (con fallback seguro para Render)
 // ==========================================================
-const whatsappClient = new Client({
-  puppeteer: {
-    headless: true,
-    executablePath: puppeteer.executablePath(),
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-extensions',
-      '--disable-gpu',
-      '--single-process'
-    ]
-  },
-  authStrategy: new LocalAuth({ dataPath: sessionDir })
-});
+let whatsappClient;
+
+try {
+  whatsappClient = new Client({
+    authStrategy: new LocalAuth({ dataPath: sessionDir }),
+    puppeteer: {
+      // ⚠️ Esta parte puede romper en Render si Chromium no se instala correctamente.
+      // Para evitar fallos, incluimos un fallback más abajo.
+      executablePath: puppeteer.executablePath(),
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-extensions',
+        '--disable-gpu',
+        '--single-process'
+      ]
+    }
+  });
+} catch (err) {
+  console.error('⚠️ Puppeteer no pudo inicializar correctamente:', err.message);
+  console.warn('🩹 El bot seguirá activo sin inicializar WhatsApp hasta que Chromium esté disponible.');
+  whatsappClient = null;
+}
 
 // ==========================================================
 // 🌐 EXPRESS HEALTHCHECK + QR
@@ -161,20 +171,22 @@ app.listen(PORT, () => console.log(`🌐 Healthcheck activo en puerto ${PORT}`))
 // ==========================================================
 // 📲 EVENTOS DEL CLIENTE WHATSAPP
 // ==========================================================
-whatsappClient.on('qr', async qr => {
-  console.log('📲 Escanea este código QR para vincular tu número:');
-  qrcode.generate(qr, { small: true });
-  await QRCode.toFile(qrPath, qr, { width: 300 });
-});
+if (whatsappClient) {
+  whatsappClient.on('qr', async qr => {
+    console.log('📲 Escanea este código QR para vincular tu número:');
+    qrcode.generate(qr, { small: true });
+    await QRCode.toFile(qrPath, qr, { width: 300 });
+  });
 
-whatsappClient.on('ready', () =>
-  console.log('✅ Cliente WhatsApp listo y conectado!')
-);
+  whatsappClient.on('ready', () =>
+    console.log('✅ Cliente WhatsApp listo y conectado!')
+  );
 
-whatsappClient.on('disconnected', async reason => {
-  console.warn('⚠️ Cliente desconectado:', reason);
-  setTimeout(() => whatsappClient.initialize(), 5000);
-});
+  whatsappClient.on('disconnected', async reason => {
+    console.warn('⚠️ Cliente desconectado:', reason);
+    setTimeout(() => whatsappClient.initialize(), 5000);
+  });
+}
 
 // ==========================================================
 // 💬 LÓGICA DE INTERACCIÓN PRINCIPAL
@@ -191,67 +203,69 @@ const { procesarSuscripcion } = require('./interaccion_del_bot/tarifas_menu');
 const CMD_MENU = ['menu', 'inicio', 'volver', 'home'];
 const CMD_CANCEL = ['cancelar', 'salir', 'stop', 'terminar', 'abortar'];
 
-whatsappClient.on('message', async msg => {
-  try {
-    const userMsg = (msg.body || '').trim().toLowerCase();
-    let session = await getSession(msg.from);
-    session.type = session.type || 'menu_inicio';
-    session.data = session.data || {};
-
-    if (CMD_CANCEL.includes(userMsg)) {
-      await deleteSession(msg.from);
-      await msg.reply('🛑 Registro cancelado. Escribe *menu* para comenzar de nuevo.');
-      return;
-    }
-
-    if (CMD_MENU.includes(userMsg)) {
-      session = { type: 'menu_inicio', data: {} };
-      await saludoDelUsuario(msg);
-      await saveUserSession(msg.from, session);
-      return;
-    }
-
-    switch (session.type) {
-      case 'menu_inicio':
-        const handleMenu = await menuInicioModule(msg, null, session);
-        await handleMenu(userMsg);
-        break;
-      case 'registro_usuario':
-        await iniciarRegistroUsuario(msg, session);
-        break;
-      case 'registro_mascota':
-        await iniciarRegistroMascota(msg, session, mqttCloud);
-        break;
-      case 'suscripciones':
-        await iniciarSuscripciones(msg, session);
-        break;
-      case 'historia_clinica':
-        await historiaClinicaBot.procesarSolicitud(msg.from);
-        break;
-      case 'crear_cita':
-        await crearCitaBot.procesarSolicitud(msg.from);
-        break;
-      case 'tarifas':
-        const meses = parseInt(userMsg);
-        if ([3, 6, 12].includes(meses)) {
-          await msg.reply(procesarSuscripcion(meses));
-        } else {
-          await msg.reply('❌ Opción inválida. Usa 3, 6 o 12 meses.');
-        }
-        break;
-      default:
-        await msg.reply('🤖 No entendí. Escribe *menu* para comenzar.');
-    }
-
-    await saveUserSession(msg.from, session);
-
-  } catch (err) {
-    console.error('⚠️ Error procesando mensaje:', err);
+if (whatsappClient) {
+  whatsappClient.on('message', async msg => {
     try {
-      await msg.reply('⚠️ Ocurrió un error. Escribe *menu* para reiniciar.');
-    } catch (_) {}
-  }
-});
+      const userMsg = (msg.body || '').trim().toLowerCase();
+      let session = await getSession(msg.from);
+      session.type = session.type || 'menu_inicio';
+      session.data = session.data || {};
+
+      if (CMD_CANCEL.includes(userMsg)) {
+        await deleteSession(msg.from);
+        await msg.reply('🛑 Registro cancelado. Escribe *menu* para comenzar de nuevo.');
+        return;
+      }
+
+      if (CMD_MENU.includes(userMsg)) {
+        session = { type: 'menu_inicio', data: {} };
+        await saludoDelUsuario(msg);
+        await saveUserSession(msg.from, session);
+        return;
+      }
+
+      switch (session.type) {
+        case 'menu_inicio':
+          const handleMenu = await menuInicioModule(msg, null, session);
+          await handleMenu(userMsg);
+          break;
+        case 'registro_usuario':
+          await iniciarRegistroUsuario(msg, session);
+          break;
+        case 'registro_mascota':
+          await iniciarRegistroMascota(msg, session, mqttCloud);
+          break;
+        case 'suscripciones':
+          await iniciarSuscripciones(msg, session);
+          break;
+        case 'historia_clinica':
+          await historiaClinicaBot.procesarSolicitud(msg.from);
+          break;
+        case 'crear_cita':
+          await crearCitaBot.procesarSolicitud(msg.from);
+          break;
+        case 'tarifas':
+          const meses = parseInt(userMsg);
+          if ([3, 6, 12].includes(meses)) {
+            await msg.reply(procesarSuscripcion(meses));
+          } else {
+            await msg.reply('❌ Opción inválida. Usa 3, 6 o 12 meses.');
+          }
+          break;
+        default:
+          await msg.reply('🤖 No entendí. Escribe *menu* para comenzar.');
+      }
+
+      await saveUserSession(msg.from, session);
+
+    } catch (err) {
+      console.error('⚠️ Error procesando mensaje:', err);
+      try {
+        await msg.reply('⚠️ Ocurrió un error. Escribe *menu* para reiniciar.');
+      } catch (_) {}
+    }
+  });
+}
 
 // ==========================================================
 // 🧠 GESTIÓN DE MEMORIA AUTOMÁTICA
@@ -262,8 +276,8 @@ setInterval(() => {
   if (usedMB > 400) {
     console.warn('🚨 Memoria alta, reinicializando cliente para evitar crash...');
     try {
-      whatsappClient.destroy();
-      setTimeout(() => whatsappClient.initialize(), 8000);
+      whatsappClient?.destroy();
+      setTimeout(() => whatsappClient?.initialize(), 8000);
     } catch (_) {}
   }
 }, 15000);
@@ -271,5 +285,11 @@ setInterval(() => {
 // ==========================================================
 // 🚀 INICIALIZACIÓN FINAL
 // ==========================================================
-whatsappClient.initialize();
-console.log('🚀 PETBIO WhatsApp Bot inicializado.');
+if (whatsappClient) {
+  whatsappClient.initialize();
+  console.log('🚀 PETBIO WhatsApp Bot inicializado.');
+} else {
+  console.warn('⚠️ WhatsApp no se inicializó (Chromium ausente o fallo en Puppeteer).');
+  console.warn('👉 Revisa que el build de Render ejecute correctamente el script "postinstall": "puppeteer install"');
+}
+
