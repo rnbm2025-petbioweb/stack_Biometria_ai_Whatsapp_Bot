@@ -1,79 +1,76 @@
+# =========================================================
+# 🧠 Render Configuration - PETBIO WhatsApp Bot
+# =========================================================
 services:
   - type: web
     name: whatsapp-bot
     env: node
     plan: free
-    rootDir: whatsapp_bot   # ✅ Directorio donde está package.json
+    rootDir: whatsapp_bot   # Aquí debe estar package.json
 
     # =========================================================
-    # 🔧 COMANDO DE BUILD (antes del despliegue)
+    # 🛠️ COMANDO DE BUILD (antes del despliegue)
     # =========================================================
     buildCommand: |
-      echo "🛠️ [BUILD] Iniciando proceso de construcción del bot PETBIO..."
-      
-      # Dar permisos al script de build
-      chmod +x ./render-build.sh && echo "✅ Permisos de render-build.sh asignados."
-      
-      # Ejecutar script de instalación de dependencias del sistema
-      echo "🔧 [1/3] Ejecutando render-build.sh..."
-      ./render-build.sh && echo "✅ Dependencias del sistema instaladas."
-      
-      # Instalar dependencias Node.js
-      echo "📦 [2/3] Instalando dependencias Node..."
-      yarn install --frozen-lockfile && echo "✅ Dependencias Node instaladas."
-      
-      # Instalar Puppeteer Chrome
-      echo "🌐 [3/3] Instalando Chromium para Puppeteer..."
-      npx puppeteer install chrome && echo "✅ Chromium instalado correctamente."
-      
-      echo "🎯 [BUILD COMPLETADO] Todos los pasos ejecutados correctamente."
+      chmod +x ./render-build.sh
+      ./render-build.sh
+      yarn install
+      npx puppeteer install chrome
 
     # =========================================================
     # 🚀 COMANDO DE INICIO (ejecuta el bot)
     # =========================================================
-    startCommand: |
-      echo "🚀 [START] Iniciando PETBIO WhatsApp Bot..."
-      chmod +x ./render-start.sh && echo "✅ Permisos de render-start.sh verificados."
-      ./render-start.sh && echo "✅ Bot iniciado correctamente."
+    startCommand: ./render-start.sh
 
     # =========================================================
     # 🌍 VARIABLES DE ENTORNO
     # =========================================================
     envVars:
+      # ===============================
+      # Node / App
+      # ===============================
       - key: NODE_ENV
         value: production
       - key: PORT
         value: "3000"
-
-      # Puppeteer
+      - key: PUPPETEER_EXECUTABLE_PATH
+        value: /usr/bin/chromium-browser
       - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
-        value: "false"  # ❌ no saltar descarga; Puppeteer instalará Chromium correcto
-      # - key: PUPPETEER_EXECUTABLE_PATH
-      #   value: (No es necesario, Puppeteer lo detecta automáticamente)
+        value: "true"
 
+      # ===============================
       # API Keys / Servicios externos
+      # ===============================
       - key: OPENAI_API_KEY
-        value: sk-proj-XXXXXXXXXXXXXXXXXXXXXXXXXXXX
+        value: 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
       - key: TWILIO_SID
-        value: ACXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+        value: ACe15576d5f4212f1aa78999a3f53820d1
       - key: TWILIO_AUTH
-        value: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        value: f462e76653a85ac6172d441a7bd67332
       - key: TWILIO_NUMBER
         value: whatsapp:+14155238886
       - key: ADMIN_NUMBER
         value: whatsapp:+573007019277
       - key: VERIFY_SERVICE_SID
-        value: VAXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-      # URLs de integración PHP
+        value: VA4c43e35a016e2242bb25a929b9b59cba
       - key: CATALOG_URL
         value: http://php_integrator/catalogos.php
       - key: SUSCRIPCION_URL
         value: http://php_integrator/whatsapp-suscripcion.php
 
-      # MySQL Local / Docker interno
+      # ===============================
+      # Usuarios locales / permisos
+      # ===============================
+      - key: LOCAL_UID
+        value: "1000"
+      - key: LOCAL_GID
+        value: "1000"
+
+      # ===============================
+      # MySQL
+      # ===============================
       - key: MYSQL_HOST
-        value: 172.22.0.2
+        value: 172.22.0.02
       - key: MYSQL_PORT
         value: "3306"
       - key: MYSQL_USER
@@ -83,20 +80,30 @@ services:
       - key: MYSQL_DATABASE
         value: db__produccion_petbio_segura_2025
 
-      # MQTT LavinMQ Cloud
-      - key: MQTT_HOST
-        value: duck.lmq.cloudamqp.com
-      - key: MQTT_PORT
-        value: "8883"
-      - key: MQTT_USER
+      # ===============================
+      # MQTT Cloud (CloudMQTT)
+      # ===============================
+      - key: MQTT_CLOUD_BROKER
+        value: mqtts://duck.lmq.cloudamqp.com:8883
+      - key: MQTT_CLOUD_USER
         value: xdagoqsj
-      - key: MQTT_PASS
+      - key: MQTT_CLOUD_PASS
         value: flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L
-      - key: MQTT_TOPIC
-        value: petbio/test
 
-      # Supabase
-      - key: SUPABASE_KEY
-        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      # ===============================
+      # Supabase / PostgreSQL
+      # ===============================
       - key: SUPABASE_DB_URL
         value: postgresql://postgres:R00t_Segura_2025!@db.jbsxvonnrahhfffeacdy.supabase.co:5432/postgres
+      - key: SUPABASE_HOST
+        value: db.jbsxvonnrahhfffeacdy.supabase.co
+      - key: SUPABASE_PORT
+        value: "5432"
+      - key: SUPABASE_USER
+        value: postgres
+      - key: SUPABASE_PASS
+        value: R00t_Segura_2025!
+      - key: SUPABASE_DB
+        value: postgres
+      - key: SUPABASE_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...

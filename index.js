@@ -116,13 +116,12 @@ const deleteSession = async (userId) => {
 // ==========================================================
 // 📁 SESIÓN LOCAL DEL CLIENTE WHATSAPP
 // ==========================================================
-// Render proporciona disco persistente en /tmp/session
 const sessionDir = '/tmp/session';
 if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 console.log(`📁 Sesiones WhatsApp persistentes en: ${sessionDir}`);
 
 // ==========================================================
-// 🧩 DETECCIÓN DE CHROME EN RENDER SIMPLIFICADA
+// 🧩 DETECCIÓN DE CHROME EN RENDER
 // ==========================================================
 let chromePath;
 try {
