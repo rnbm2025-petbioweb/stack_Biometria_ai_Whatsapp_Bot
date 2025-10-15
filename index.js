@@ -38,40 +38,45 @@ const MQTT_TOPIC = process.env.MQTT_TOPIC || 'petbio/test';
 
 let mqttCloud = null;
 
-try {
-  const mqttOptions = {
-    username: MQTT_USER,
-    password: MQTT_PASS,
-    port: MQTT_PORT,
-    protocol: 'mqtts',
-    connectTimeout: 5000,
-    keepalive: 60,
-    reconnectPeriod: 10000
-  };
+// Mejora: Intento inicial de conexión a MQTT antes de continuar con WhatsApp
+const initMQTT = () => {
+  try {
+    const mqttOptions = {
+      username: MQTT_USER,
+      password: MQTT_PASS,
+      port: MQTT_PORT,
+      protocol: 'mqtts',
+      connectTimeout: 5000,
+      keepalive: 60,
+      reconnectPeriod: 10000
+    };
 
-  console.log(`📡 Conectando a LavinMQ (${MQTT_HOST}:${MQTT_PORT})...`);
-  mqttCloud = mqtt.connect(`mqtts://${MQTT_HOST}`, mqttOptions);
+    console.log(`📡 Conectando a LavinMQ (${MQTT_HOST}:${MQTT_PORT})...`);
+    mqttCloud = mqtt.connect(`mqtts://${MQTT_HOST}`, mqttOptions);
 
-  mqttCloud.on('connect', () => {
-    console.log(`✅ MQTT conectado y suscrito a ${MQTT_TOPIC}`);
-    mqttCloud.subscribe(MQTT_TOPIC);
-  });
+    mqttCloud.on('connect', () => {
+      console.log(`✅ MQTT conectado y suscrito a ${MQTT_TOPIC}`);
+      mqttCloud.subscribe(MQTT_TOPIC);
+    });
 
-  mqttCloud.on('message', (topic, msg) =>
-    console.log(`📨 [${topic}] ${msg.toString()}`)
-  );
+    mqttCloud.on('message', (topic, msg) =>
+      console.log(`📨 [${topic}] ${msg.toString()}`)
+    );
 
-  mqttCloud.on('error', err =>
-    console.error('⚠️ Error MQTT:', err.message)
-  );
+    mqttCloud.on('error', err =>
+      console.error('⚠️ Error MQTT:', err.message)
+    );
 
-  mqttCloud.on('close', () =>
-    console.warn('🔌 MQTT desconectado, reintentando...')
-  );
+    mqttCloud.on('close', () =>
+      console.warn('🔌 MQTT desconectado, reintentando...')
+    );
 
-} catch (err) {
-  console.warn('⚠️ MQTT no configurado:', err.message);
-}
+  } catch (err) {
+    console.warn('⚠️ MQTT no configurado:', err.message);
+  }
+};
+
+initMQTT();
 
 // ==========================================================
 // 🧠 FUNCIONES SUPABASE (sesiones)
@@ -113,31 +118,21 @@ const deleteSession = async (userId) => {
 // ==========================================================
 // 📁 SESIÓN LOCAL DEL CLIENTE WHATSAPP
 // ==========================================================
+// Mejora: Si quieres persistencia entre redeploys, usar disco persistente de Render
 const sessionDir = '/tmp/session';
 if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
 // ==========================================================
-// 🧩 DETECCIÓN AUTOMÁTICA DE CHROME EN RENDER
+// 🧩 DETECCIÓN DE CHROME EN RENDER SIMPLIFICADA
 // ==========================================================
+// Mejora: Eliminamos lógica extra de fs.readdirSync y usamos Puppeteer con PUPPETEER_EXECUTABLE_PATH
 let chromePath;
 try {
   chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath();
-  if (!fs.existsSync(chromePath)) {
-    const baseDir = '/opt/render/.cache/puppeteer/chrome/';
-    const dirs = fs.readdirSync(baseDir);
-    if (dirs.length > 0) {
-      const latest = dirs.sort().pop();
-      chromePath = path.join(baseDir, latest, 'chrome-linux64/chrome');
-      console.log(`🔍 Chrome detectado automáticamente en: ${chromePath}`);
-    }
-  }
+  console.log(`🔍 Chrome detectado en: ${chromePath}`);
 } catch (err) {
-  console.warn('⚠️ No se pudo detectar Chrome automáticamente:', err.message);
-}
-
-if (!fs.existsSync(chromePath || '')) {
-  console.error('❌ Chrome no encontrado en ninguna ruta conocida.');
-  console.error('👉 Asegúrate de tener en el build command: npx puppeteer install chrome');
+  console.error('❌ Chrome no encontrado automáticamente:', err.message);
+  console.error('👉 Asegúrate de ejecutar "npx puppeteer install" en build command de Render');
 }
 
 // ==========================================================
@@ -151,6 +146,7 @@ try {
     puppeteer: {
       executablePath: chromePath,
       headless: true,
+      dumpio: true, // Mejora: logs completos de Puppeteer para debug en Render
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -182,7 +178,8 @@ app.get('/health', (req, res) => {
     status: '✅ PETBIO Bot activo',
     supabase: !!supabaseKey,
     mqtt: mqttCloud?.connected || false,
-    whatsapp: whatsappClient?.info ? "✅ Conectado" : "⏳ Esperando conexión"
+    // Mejora: healthcheck más preciso usando initialized
+    whatsapp: whatsappClient?.initialized ? "✅ Conectado" : "⏳ Esperando conexión"
   });
 });
 
@@ -306,6 +303,18 @@ setInterval(() => {
     } catch (_) {}
   }
 }, 15000);
+
+// ==========================================================
+// ⚠️ MANEJO GLOBAL DE ERRORES INESPERADOS
+// ==========================================================
+process.on('uncaughtException', (err) => {
+  console.error('💥 Uncaught Exception:', err);
+  setTimeout(() => process.exit(1), 2000);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('💥 Unhandled Rejection:', reason);
+  setTimeout(() => process.exit(1), 2000);
+});
 
 // ==========================================================
 // 🚀 INICIALIZACIÓN FINAL
