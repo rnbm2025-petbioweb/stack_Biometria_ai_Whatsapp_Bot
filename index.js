@@ -17,7 +17,7 @@ const puppeteer = require('puppeteer');
 // ==========================================================
 // 🌐 CONFIGURACIÓN SUPABASE
 // ==========================================================
-const supabaseUrl = 'https://jbsxvonnrahhfffeacdy.supabase.co';
+const supabaseUrl = process.env.SUPABASE_URL || 'https://jbsxvonnrahhfffeacdy.supabase.co';
 const supabaseKey = process.env.SUPABASE_KEY;
 if (!supabaseKey) {
   console.error("❌ ERROR: No se encontró SUPABASE_KEY en .env");
@@ -30,7 +30,7 @@ console.log("🔑 Supabase inicializado correctamente.");
 // 📡 CONFIGURACIÓN MQTT (LavinMQ CloudAMQP)
 // ==========================================================
 const MQTT_HOST = process.env.MQTT_CLOUD_BROKER || 'duck.lmq.cloudamqp.com';
-const MQTT_PORT = process.env.MQTT_PORT || 8883;
+const MQTT_PORT = parseInt(process.env.MQTT_PORT || '8883', 10);
 const MQTT_USER = process.env.MQTT_CLOUD_USER;
 const MQTT_PASS = process.env.MQTT_CLOUD_PASS;
 const MQTT_TOPIC = process.env.MQTT_TOPIC || 'petbio/test';
@@ -38,6 +38,10 @@ const MQTT_TOPIC = process.env.MQTT_TOPIC || 'petbio/test';
 let mqttCloud = null;
 
 const initMQTT = () => {
+  if (!MQTT_USER || !MQTT_PASS) {
+    console.warn('⚠️ MQTT no configurado: faltan credenciales.');
+    return;
+  }
   try {
     const mqttOptions = {
       username: MQTT_USER,
@@ -50,7 +54,7 @@ const initMQTT = () => {
     };
 
     console.log(`📡 Conectando a LavinMQ (${MQTT_HOST}:${MQTT_PORT})...`);
-    mqttCloud = mqtt.connect(`${MQTT_HOST}`, mqttOptions);
+    mqttCloud = mqtt.connect(MQTT_HOST, mqttOptions);
 
     mqttCloud.on('connect', () => {
       console.log(`✅ MQTT conectado y suscrito a ${MQTT_TOPIC}`);
@@ -70,7 +74,7 @@ const initMQTT = () => {
     );
 
   } catch (err) {
-    console.warn('⚠️ MQTT no configurado:', err.message);
+    console.warn('⚠️ Error inicializando MQTT:', err.message);
   }
 };
 
@@ -129,35 +133,40 @@ try {
   console.log(`🔍 Chrome detectado en: ${chromePath}`);
 } catch (err) {
   console.error('❌ Chrome no encontrado automáticamente:', err.message);
+  chromePath = undefined;
 }
 
 // ==========================================================
 // 🤖 CLIENTE WHATSAPP
 // ==========================================================
 let whatsappClient;
-try {
-  whatsappClient = new Client({
-    authStrategy: new LocalAuth({ dataPath: sessionDir }),
-    puppeteer: {
-      executablePath: chromePath,
-      headless: true,
-      dumpio: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-gpu',
-        '--disable-dev-shm-usage',
-        '--no-zygote',
-        '--disable-software-rasterizer',
-        '--disable-extensions',
-        '--disable-web-security',
-        '--disable-features=VizDisplayCompositor',
-        '--single-process'
-      ],
-    },
-  });
-} catch (err) {
-  console.error('⚠️ Puppeteer no pudo inicializar correctamente:', err.message);
+if (chromePath) {
+  try {
+    whatsappClient = new Client({
+      authStrategy: new LocalAuth({ dataPath: sessionDir }),
+      puppeteer: {
+        executablePath: chromePath,
+        headless: true,
+        dumpio: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-gpu',
+          '--disable-dev-shm-usage',
+          '--no-zygote',
+          '--disable-software-rasterizer',
+          '--disable-extensions',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor',
+          '--single-process'
+        ],
+      },
+    });
+  } catch (err) {
+    console.error('⚠️ Puppeteer no pudo inicializar correctamente:', err.message);
+  }
+} else {
+  console.warn('⚠️ Cliente WhatsApp no se inicializó: Chrome no detectado.');
 }
 
 // ==========================================================

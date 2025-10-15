@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-echo "🚀 Instalando dependencias del sistema para Chromium..."
+echo "🚀 Actualizando e instalando dependencias del sistema para Chromium..."
 apt-get update -y
 apt-get install -y chromium \
   fonts-liberation \
@@ -15,11 +15,27 @@ apt-get install -y chromium \
   libxdamage1 \
   xdg-utils \
   wget \
-  unzip
+  unzip \
+  ca-certificates \
+  gnupg \
+  curl
 
 echo "✅ Dependencias del sistema instaladas correctamente."
 
 echo "⬇️ Instalando Puppeteer Chrome (runtime)..."
 npx puppeteer browsers install chrome --platform=linux --arch=x64 --force
-
 echo "✅ Chromium y Puppeteer listos para usar."
+
+# ===========================
+# 🔹 Arranque del bot
+# ===========================
+echo "🧠 Iniciando PETBIO WhatsApp Bot..."
+
+# Ruta del ejecutable de Chrome instalado por Puppeteer
+CHROME_PATH=$(npx puppeteer info --path)
+
+# Exporta la ruta para tu index.js si usas puppeteer-core
+export PUPPETEER_EXECUTABLE_PATH="$CHROME_PATH"
+
+# Inicia el bot
+node index.js
