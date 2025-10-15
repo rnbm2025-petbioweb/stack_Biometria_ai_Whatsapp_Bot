@@ -3,35 +3,38 @@ services:
     name: whatsapp-bot
     env: node
     plan: free
-    rootDir: whatsapp_bot   # Aquí debe estar package.json
-   # buildCommand: |
-   #   yarn install
-   #   npx puppeteer install chrome
+    rootDir: whatsapp_bot   # donde está package.json
+
     buildCommand: |
+      echo "🔧 Instalando dependencias del sistema..."
       chmod +x ./render-build.sh
       ./render-build.sh
-      yarn install
+      echo "📦 Instalando dependencias de Node..."
+      yarn install --frozen-lockfile
+      echo "🌐 Instalando Chromium (Puppeteer Chrome)..."
       npx puppeteer install chrome
 
     startCommand: node whatsapp_bot/index.js
+
     envVars:
       # ===============================
-      # Node / App
+      # Node / Puppeteer
       # ===============================
       - key: NODE_ENV
         value: production
       - key: PORT
         value: "3000"
-      - key: PUPPETEER_EXECUTABLE_PATH
-        value: /usr/bin/chromium-browser
       - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
         value: "true"
+      - key: PUPPETEER_EXECUTABLE_PATH
+        value: /opt/render/.cache/puppeteer/chrome/linux-141.0.7390.78/chrome-linux64/chrome
 
       # ===============================
       # API Keys / Servicios externos
       # ===============================
       - key: OPENAI_API_KEY
         value: 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
+
       - key: TWILIO_SID
         value: ACe15576d5f4212f1aa78999a3f53820d1
       - key: TWILIO_AUTH
@@ -42,21 +45,17 @@ services:
         value: whatsapp:+573007019277
       - key: VERIFY_SERVICE_SID
         value: VA4c43e35a016e2242bb25a929b9b59cba
+
+      # ===============================
+      # URLs de integración
+      # ===============================
       - key: CATALOG_URL
         value: http://php_integrator/catalogos.php
       - key: SUSCRIPCION_URL
         value: http://php_integrator/whatsapp-suscripcion.php
 
       # ===============================
-      # Usuarios locales / permisos
-      # ===============================
-      - key: LOCAL_UID
-        value: "1000"
-      - key: LOCAL_GID
-        value: "1000"
-
-      # ===============================
-      # MySQL
+      # MySQL Local / Docker interno
       # ===============================
       - key: MYSQL_HOST
         value: 172.22.0.02
@@ -70,55 +69,23 @@ services:
         value: db__produccion_petbio_segura_2025
 
       # ===============================
-      # MQTT Cloud (CloudMQTT)
+      # MQTT LavinMQ Cloud
       # ===============================
-      - key: MQTT_CLOUD_BROKER
-        value: mqtts://duck.lmq.cloudamqp.com:8883  #8883
-      - key: MQTT_CLOUD_USER
+      - key: MQTT_HOST
+        value: duck.lmq.cloudamqp.com
+      - key: MQTT_PORT
+        value: "8883"
+      - key: MQTT_USER
         value: xdagoqsj
-      - key: MQTT_CLOUD_PASS
+      - key: MQTT_PASS
         value: flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L
+      - key: MQTT_TOPIC
+        value: petbio/test
 
       # ===============================
-      # MQTT Local DEV / PROD
+      # Supabase
       # ===============================
-    #  - key: MQTT_LOCAL_DEV_BROKER
-    #    value: mqtt://172.23.0.3:1883
-    #  - key: MQTT_LOCAL_DEV_USER
-    #    value: petbio_user_dev
-    #  - key: MQTT_LOCAL_DEV_PASS
-    #    value: petbio2025_dev!
-    #  - key: MQTT_LOCAL_BROKER
-    #    value: mqtt://172.23.0.3:1883
-    #  - key: MQTT_LOCAL_USER
-    #    value: petbio_user
-    #  - key: MQTT_LOCAL_PASS
-    #    value: petbio2025!
-
-      # ===============================
-      # Supabase / PostgreSQL
-      # ===============================
-      - key: SUPABASE_DB_URL
-        value: postgresql://postgres:R00t_Segura_2025!@db.jbsxvonnrahhfffeacdy.supabase.co:5432/postgres
-      - key: SUPABASE_HOST
-        value: db.jbsxvonnrahhfffeacdy.supabase.co
-      - key: SUPABASE_PORT
-        value: "5432"
-      - key: SUPABASE_USER
-        value: postgres
-      - key: SUPABASE_PASS
-        value: R00t_Segura_2025!
-      - key: SUPABASE_DB
-        value: postgres
       - key: SUPABASE_KEY
         value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-
-
-
-#envVars:
- # - key: SUPABASE_KEY
- #   value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
- # - key: SUPABASE_DB_URL
- #   value: postgresql://postgres:R00t_Segura_2025!@db.jbsxvonnrahhfffeacdy.supabase.co:5432/postgres
- # - key: MQTT_CLOUD_BROKER
- #   value: mqtts://duck-01.lmq.cloudamqp.com:8883
+      - key: SUPABASE_DB_URL
+        value: postgresql://postgres:R00t_Segura_2025!@db.jbsxvonnrahhfffeacdy.supabase.co:5432/postgres
