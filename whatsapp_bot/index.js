@@ -9,7 +9,6 @@ const path = require('path');
 const fs = require('fs');
 const express = require('express');
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const puppeteer = require('puppeteer');
 const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
 const { createClient } = require('@supabase/supabase-js');
@@ -117,27 +116,37 @@ const sessionDir = '/tmp/session';
 if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
 // ==========================================================
-// 🤖 CLIENTE WHATSAPP (con fallback seguro para Render)
+// 🤖 CLIENTE WHATSAPP (configurado para Render)
 // ==========================================================
+const chromePath = '/opt/render/.cache/puppeteer/chrome/linux-141.0.7390.78/chrome-linux64/chrome';
+
+// 🧩 Validamos si Chrome existe
+if (!fs.existsSync(chromePath)) {
+  console.error('❌ Chrome no encontrado en:', chromePath);
+  console.error('👉 Ejecuta en Render Build Command: `npx puppeteer install chrome`');
+}
+
 let whatsappClient;
 
 try {
   whatsappClient = new Client({
     authStrategy: new LocalAuth({ dataPath: sessionDir }),
     puppeteer: {
-      // ⚠️ Esta parte puede romper en Render si Chromium no se instala correctamente.
-      // Para evitar fallos, incluimos un fallback más abajo.
-      executablePath: puppeteer.executablePath(),
+      executablePath: chromePath,
       headless: true,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-extensions',
         '--disable-gpu',
+        '--disable-dev-shm-usage',
+        '--no-zygote',
+        '--disable-software-rasterizer',
+        '--disable-extensions',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor',
         '--single-process'
-      ]
-    }
+      ],
+    },
   });
 } catch (err) {
   console.error('⚠️ Puppeteer no pudo inicializar correctamente:', err.message);
@@ -292,4 +301,3 @@ if (whatsappClient) {
   console.warn('⚠️ WhatsApp no se inicializó (Chromium ausente o fallo en Puppeteer).');
   console.warn('👉 Revisa que el build de Render ejecute correctamente el script "postinstall": "puppeteer install"');
 }
-
