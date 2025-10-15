@@ -13,6 +13,7 @@ const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
 const { createClient } = require('@supabase/supabase-js');
 const mqtt = require('mqtt');
+const puppeteer = require('puppeteer');
 
 // ==========================================================
 // 🌐 CONFIGURACIÓN SUPABASE
@@ -116,16 +117,32 @@ const sessionDir = '/tmp/session';
 if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
 // ==========================================================
-// 🤖 CLIENTE WHATSAPP (configurado para Render)
+// 🧩 DETECCIÓN AUTOMÁTICA DE CHROME EN RENDER
 // ==========================================================
-const chromePath = '/opt/render/.cache/puppeteer/chrome/linux-141.0.7390.78/chrome-linux64/chrome';
-
-// 🧩 Validamos si Chrome existe
-if (!fs.existsSync(chromePath)) {
-  console.error('❌ Chrome no encontrado en:', chromePath);
-  console.error('👉 Ejecuta en Render Build Command: `npx puppeteer install chrome`');
+let chromePath;
+try {
+  chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath();
+  if (!fs.existsSync(chromePath)) {
+    const baseDir = '/opt/render/.cache/puppeteer/chrome/';
+    const dirs = fs.readdirSync(baseDir);
+    if (dirs.length > 0) {
+      const latest = dirs.sort().pop();
+      chromePath = path.join(baseDir, latest, 'chrome-linux64/chrome');
+      console.log(`🔍 Chrome detectado automáticamente en: ${chromePath}`);
+    }
+  }
+} catch (err) {
+  console.warn('⚠️ No se pudo detectar Chrome automáticamente:', err.message);
 }
 
+if (!fs.existsSync(chromePath || '')) {
+  console.error('❌ Chrome no encontrado en ninguna ruta conocida.');
+  console.error('👉 Asegúrate de tener en el build command: npx puppeteer install chrome');
+}
+
+// ==========================================================
+// 🤖 CLIENTE WHATSAPP (config Render-ready)
+// ==========================================================
 let whatsappClient;
 
 try {
@@ -150,7 +167,6 @@ try {
   });
 } catch (err) {
   console.error('⚠️ Puppeteer no pudo inicializar correctamente:', err.message);
-  console.warn('🩹 El bot seguirá activo sin inicializar WhatsApp hasta que Chromium esté disponible.');
   whatsappClient = null;
 }
 
