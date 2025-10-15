@@ -4,18 +4,20 @@ set -e
 echo "🧠 Iniciando PETBIO WhatsApp Bot..."
 
 # ==========================================================
-# 🌐 VERIFICAR RUTA DE CHROME (Render Puppeteer Cache)
+# 🌐 DETECTAR CHROMIUM AUTOMÁTICAMENTE
 # ==========================================================
-CHROME_CACHE="/opt/render/.cache/puppeteer/chrome/linux-140.0.7339.207/chrome-linux64/chrome"
+PUPPETEER_EXECUTABLE_PATH=$(node -e "console.log(require('puppeteer').executablePath())")
 
-if [ -f "$CHROME_CACHE" ]; then
-  echo "✅ Chromium detectado en la cache: $CHROME_CACHE"
+if [ -f "$PUPPETEER_EXECUTABLE_PATH" ]; then
+  echo "✅ Chromium detectado automáticamente en: $PUPPETEER_EXECUTABLE_PATH"
 else
-  echo "⚠️ Chromium NO encontrado en cache."
-  echo "   Ejecutando instalación de Puppeteer Chrome..."
+  echo "⚠️ Chromium no encontrado, ejecutando instalación..."
   npx puppeteer browsers install chrome --platform=linux --arch=x64 --force
-  if [ -f "$CHROME_CACHE" ]; then
-    echo "✅ Chromium instalado correctamente."
+
+  # Re-detectar ruta después de instalación
+  PUPPETEER_EXECUTABLE_PATH=$(node -e "console.log(require('puppeteer').executablePath())")
+  if [ -f "$PUPPETEER_EXECUTABLE_PATH" ]; then
+    echo "✅ Chromium instalado correctamente en: $PUPPETEER_EXECUTABLE_PATH"
   else
     echo "❌ Falló la instalación de Chromium. Revisa permisos o cache de Render."
     exit 1
@@ -23,11 +25,13 @@ else
 fi
 
 # ==========================================================
-# 🌐 EXPORTAR RUTA PARA NODE
+# 🌐 EXPORTAR RUTA DE CHROMIUM PARA NODE
 # ==========================================================
-export PUPPETEER_EXECUTABLE_PATH="$CHROME_CACHE"
+export PUPPETEER_EXECUTABLE_PATH
+echo "🔧 Variable PUPPETEER_EXECUTABLE_PATH exportada."
 
 # ==========================================================
-# 📌 EJECUTAR EL BOT
+# 📌 ARRANCAR EL BOT
 # ==========================================================
+echo "🚀 Arrancando PETBIO WhatsApp Bot..."
 node index.js
