@@ -115,10 +115,10 @@ services:
 
 
 
-envVars:
-  - key: SUPABASE_KEY
-    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-  - key: SUPABASE_DB_URL
-    value: postgresql://postgres:R00t_Segura_2025!@db.jbsxvonnrahhfffeacdy.supabase.co:5432/postgres
-  - key: MQTT_CLOUD_BROKER
-    value: mqtts://duck-01.lmq.cloudamqp.com:8883
+#envVars:
+ # - key: SUPABASE_KEY
+ #   value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ # - key: SUPABASE_DB_URL
+ #   value: postgresql://postgres:R00t_Segura_2025!@db.jbsxvonnrahhfffeacdy.supabase.co:5432/postgres
+ # - key: MQTT_CLOUD_BROKER
+ #   value: mqtts://duck-01.lmq.cloudamqp.com:8883
