@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "postinstall": "npx puppeteer browsers install chrome --platform=linux --arch=x64 --force",
+    "postinstall": "npx puppeteer install && npx puppeteer browsers install chrome --platform=linux --arch=x64 --force",
     "test": "echo \"Error: no test specified OJO CON ESTE PACKAGE\" && exit 1"
   },
   "dependencies": {
@@ -32,5 +32,8 @@
   },
   "engines": {
     "node": ">=22.0.0"
+  },
+  "puppeteer": {
+    "executablePath": "/opt/render/.cache/puppeteer/chrome/linux-140.0.7339.207/chrome-linux64/chrome"
   }
 }
