@@ -1,5 +1,5 @@
 # ==========================
-# WhatsApp Bot PETBIO - Dockerfile completo y actualizado
+# WhatsApp Bot PETBIO - Dockerfile final para Render con sesión persistente
 # ==========================
 FROM node:20-slim
 
@@ -56,8 +56,7 @@ WORKDIR /usr/src/app
 # ==========================
 COPY package*.json ./
 RUN npm install --omit=dev && \
-    npm install puppeteer@19.11.1 pdfkit --save && \
-    npm install mqtt-cli --save && \
+    npm install puppeteer@19.11.1 pdfkit mqtt-cli --save && \
     npm cache clean --force
 
 # ==========================
@@ -66,14 +65,14 @@ RUN npm install --omit=dev && \
 COPY . .
 
 # ==========================
-# Crear carpetas necesarias
+# Crear carpetas necesarias, incluyendo sesión persistente
 # ==========================
 RUN mkdir -p \
   /usr/src/app/WhatsApp_bot_storage/certificados \
   /usr/src/app/WhatsApp_bot_storage/uploads \
   /usr/src/app/sessions \
-  /usr/src/app/.wwebjs_auth \
   /usr/src/app/petbio_storage \
+  /tmp/session \
   /tmp/puppeteer
 
 # ==========================
@@ -83,15 +82,13 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV WWEBJS_SESSION_DIR=/tmp/session
 
 # ==========================
-# Entrypoint para limpiar sesión antes de arrancar
+# Entrypoint simplificado (no borrar sesiones)
 # ==========================
 RUN echo '#!/bin/sh\n\
-echo "🧹 Limpiando sesiones antiguas..."\n\
-rm -rf /usr/src/app/.wwebjs_auth/session\n\
-rm -rf /tmp/.wwebjs_auth/session\n\
-echo "🚀 Iniciando WhatsApp bot..."\n\
+echo "🚀 Iniciando WhatsApp bot con sesión persistente..."\n\
 exec dumb-init xvfb-run --server-args="-screen 0 1280x1024x24" node whatsapp_bot/index.js\n\
 ' > /usr/src/app/entrypoint.sh && chmod +x /usr/src/app/entrypoint.sh
 
@@ -104,4 +101,3 @@ EXPOSE 3000
 # Comando de inicio
 # ==========================
 CMD ["/usr/src/app/entrypoint.sh"]
-
