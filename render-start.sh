@@ -3,9 +3,12 @@ set -e
 
 echo "🧠 Iniciando PETBIO WhatsApp Bot..."
 
-# Mostrar ruta de Chromium (opcional, para debugging)
-echo "🔍 Verificando Chromium instalado:"
-ls -l /opt/render/.cache/puppeteer/chrome/linux-*/chrome-linux64/chrome || echo "⚠️ Chromium no encontrado, Puppeteer lo instalará automáticamente."
+# Verifica ruta de Chromium
+if [ -f "/usr/bin/chromium-browser" ]; then
+  echo "🔍 Chromium del sistema encontrado: /usr/bin/chromium-browser"
+else
+  echo "⚠️ Chromium no encontrado en /usr/bin/chromium-browser. Puppeteer usará su cache."
+fi
 
 # Ejecutar el bot
 node index.js

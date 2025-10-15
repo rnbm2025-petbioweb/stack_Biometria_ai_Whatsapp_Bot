@@ -29,10 +29,10 @@ console.log("🔑 Supabase inicializado correctamente.");
 // ==========================================================
 // 📡 CONFIGURACIÓN MQTT (LavinMQ CloudAMQP)
 // ==========================================================
-const MQTT_HOST = process.env.MQTT_HOST || 'duck.lmq.cloudamqp.com';
+const MQTT_HOST = process.env.MQTT_CLOUD_BROKER || 'duck.lmq.cloudamqp.com';
 const MQTT_PORT = process.env.MQTT_PORT || 8883;
-const MQTT_USER = process.env.MQTT_USER;
-const MQTT_PASS = process.env.MQTT_PASS;
+const MQTT_USER = process.env.MQTT_CLOUD_USER;
+const MQTT_PASS = process.env.MQTT_CLOUD_PASS;
 const MQTT_TOPIC = process.env.MQTT_TOPIC || 'petbio/test';
 
 let mqttCloud = null;
@@ -50,7 +50,7 @@ const initMQTT = () => {
     };
 
     console.log(`📡 Conectando a LavinMQ (${MQTT_HOST}:${MQTT_PORT})...`);
-    mqttCloud = mqtt.connect(`mqtts://${MQTT_HOST}`, mqttOptions);
+    mqttCloud = mqtt.connect(`${MQTT_HOST}`, mqttOptions);
 
     mqttCloud.on('connect', () => {
       console.log(`✅ MQTT conectado y suscrito a ${MQTT_TOPIC}`);
@@ -275,9 +275,7 @@ if (whatsappClient) {
 
     } catch (err) {
       console.error('⚠️ Error procesando mensaje:', err);
-      try {
-        await msg.reply('⚠️ Ocurrió un error. Escribe *menu* para reiniciar.');
-      } catch (_) {}
+      try { await msg.reply('⚠️ Ocurrió un error. Escribe *menu* para reiniciar.'); } catch (_) {}
     }
   });
 }

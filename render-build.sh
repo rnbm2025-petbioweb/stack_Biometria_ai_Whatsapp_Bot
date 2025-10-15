@@ -2,7 +2,6 @@
 set -e
 
 echo "🚀 Instalando dependencias del sistema para Chromium..."
-
 apt-get update -y
 apt-get install -y chromium \
   fonts-liberation \

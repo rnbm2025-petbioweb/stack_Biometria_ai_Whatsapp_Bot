@@ -1,29 +1,40 @@
+# =========================================================
+# 🧠 Render Configuration - PETBIO WhatsApp Bot
+# =========================================================
 services:
   - type: web
     name: whatsapp-bot
     env: node
     plan: free
-    rootDir: whatsapp_bot
+    rootDir: whatsapp_bot   # Aquí debe estar package.json
 
+    # =========================================================
+    # 🛠️ COMANDO DE BUILD (antes del despliegue)
+    # =========================================================
     buildCommand: |
-      echo "🛠️ [BUILD] Preparando entorno Puppeteer + WhatsApp Web.js..."
-      npm install
-      npx puppeteer browsers install chrome --platform=linux --arch=x64 --force
-      echo "✅ Chrome instalado en caché de Render."
+      chmod +x ./render-build.sh
+      ./render-build.sh
+      yarn install
+      npx puppeteer install chrome
 
-    startCommand: |
-      echo "🚀 Iniciando PETBIO WhatsApp Bot..."
-      node whatsapp_bot/index.js
+    # =========================================================
+    # 🚀 COMANDO DE INICIO (ejecuta el bot)
+    # =========================================================
+    startCommand: ./render-start.sh
 
+    # =========================================================
+    # 🌍 VARIABLES DE ENTORNO
+    # =========================================================
     envVars:
+      # ===============================
+      # Node / App
+      # ===============================
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: "10000"
-
-      # Puppeteer - Render Path
+        value: "3000"
       - key: PUPPETEER_EXECUTABLE_PATH
-        value: /opt/render/.cache/puppeteer/chrome/linux-140.0.7339.207/chrome-linux64/chrome
+        value: /usr/bin/chromium-browser
       - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
         value: "true"
 
@@ -48,10 +59,18 @@ services:
         value: http://php_integrator/whatsapp-suscripcion.php
 
       # ===============================
+      # Usuarios locales / permisos
+      # ===============================
+      - key: LOCAL_UID
+        value: "1000"
+      - key: LOCAL_GID
+        value: "1000"
+
+      # ===============================
       # MySQL
       # ===============================
       - key: MYSQL_HOST
-        value: 172.22.0.2
+        value: 172.22.0.02
       - key: MYSQL_PORT
         value: "3306"
       - key: MYSQL_USER
@@ -62,23 +81,31 @@ services:
         value: db__produccion_petbio_segura_2025
 
       # ===============================
-      # MQTT Cloud (LavinMQ)
+      # MQTT Cloud (CloudMQTT)
       # ===============================
-      - key: MQTT_HOST
-        value: duck.lmq.cloudamqp.com
-      - key: MQTT_PORT
-        value: "8883"
-      - key: MQTT_USER
+      - key: MQTT_CLOUD_BROKER
+        value: mqtts://duck.lmq.cloudamqp.com:8883
+      - key: MQTT_CLOUD_USER
         value: xdagoqsj
-      - key: MQTT_PASS
+      - key: MQTT_CLOUD_PASS
         value: flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L
       - key: MQTT_TOPIC
         value: petbio/test
 
       # ===============================
-      # Supabase
+      # Supabase / PostgreSQL
       # ===============================
       - key: SUPABASE_DB_URL
         value: postgresql://postgres:R00t_Segura_2025!@db.jbsxvonnrahhfffeacdy.supabase.co:5432/postgres
+      - key: SUPABASE_HOST
+        value: db.jbsxvonnrahhfffeacdy.supabase.co
+      - key: SUPABASE_PORT
+        value: "5432"
+      - key: SUPABASE_USER
+        value: postgres
+      - key: SUPABASE_PASS
+        value: R00t_Segura_2025!
+      - key: SUPABASE_DB
+        value: postgres
       - key: SUPABASE_KEY
         value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
