@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-apt-get update
+set -e
+
+echo "🚀 Instalando dependencias del sistema para Chromium..."
+
+apt-get update -y
 apt-get install -y chromium \
   fonts-liberation \
   libappindicator3-1 \
@@ -13,3 +17,10 @@ apt-get install -y chromium \
   xdg-utils \
   wget \
   unzip
+
+echo "✅ Dependencias del sistema instaladas correctamente."
+
+echo "⬇️ Instalando Puppeteer Chrome (runtime)..."
+npx puppeteer browsers install chrome --platform=linux --arch=x64 --force
+
+echo "✅ Chromium y Puppeteer listos para usar."
