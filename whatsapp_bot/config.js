@@ -309,6 +309,7 @@ async function testSupabaseConnection() {
 module.exports = {
   getMySQLConnection,
   mqttCloud,
+  mqttClient: mqttCloud, // 👈 alias compatible
   supabasePool,
   testSupabaseConnection,
   sincronizarBases, // <-- agrega esto
