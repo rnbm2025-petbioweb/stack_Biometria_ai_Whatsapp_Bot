@@ -140,6 +140,12 @@ const deleteSession = async (userId) => {
 // 📁 SESIÓN LOCAL DEL CLIENTE WHATSAPP
 // ==========================================================
 //const sessionDir = '/tmp/session'; antes dir temporarl , debemos comentar el .gitignore sessions
+//const sessionDir = path.join(__dirname, 'session');
+
+//if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
+// ==========================================================
+// 📁 SESIÓN LOCAL DEL CLIENTE WHATSAPP (persistente entre reinicios)
+// ==========================================================
 const sessionDir = path.join(__dirname, 'session');
 
 if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
