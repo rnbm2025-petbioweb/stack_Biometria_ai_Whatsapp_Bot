@@ -4,8 +4,8 @@
   "description": "Bot de WhatsApp integrado con PETBIO y Biometría AI",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "postinstall": "npx puppeteer browsers install chrome --platform=linux --arch=x64 --force",
+    "start": "npx puppeteer browsers install chrome && node index.js",
+    "postinstall": "echo '✔️ Postinstall omitido: Chrome se instalará al iniciar'",
     "test": "echo \"Error: no test specified OJO CON ESTE PACKAGE\" && exit 1"
   },
   "dependencies": {
@@ -32,5 +32,15 @@
   },
   "engines": {
     "node": ">=22.0.0"
-  }
+  },
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "puppeteer",
+    "petbio",
+    "supabase",
+    "lavinmq"
+  ],
+  "author": "PETBIO",
+  "license": "MIT"
 }
