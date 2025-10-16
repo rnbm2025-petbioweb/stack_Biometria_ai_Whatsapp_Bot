@@ -402,7 +402,7 @@ module.exports = {
   supabasePool,
   testSupabaseConnection,
   sincronizarBases,
-  supabasePool, // <-- agrega esto
+  //supabasePool, // <-- agrega esto
   // mqttLocalDev,
   // mqttLocalProd,
   guardarSessionBot, // 👈 NUEVO

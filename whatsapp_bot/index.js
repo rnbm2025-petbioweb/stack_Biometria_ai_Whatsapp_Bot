@@ -204,7 +204,13 @@ if (!fs.existsSync(chromePath || '')) {
 // ==========================================================
 // 🔁 Cargar sesión del bot desde Supabase (para restaurar si existe)
 // ==========================================================
-const { supabasePool, guardarSessionBot } = require('./config'); // asegúrate que 'config.js' exporte ambas funciones
+//   remplazamos por la de la linea 211 const { supabasePool, guardarSessionBot } = require('./config'); // asegúrate que 'config.js' exporte ambas funciones
+
+// agregamos esa version segura y compatible:
+
+const { guardarSessionBot } = require('./config');
+const supabasePool = global.supabasePool;
+
 
 async function cargarSessionDesdeSupabase(sessionId) {
   try {
