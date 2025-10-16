@@ -16,7 +16,9 @@ const { createClient } = require('@supabase/supabase-js');
 const mqtt = require('mqtt');
 const puppeteer = require('puppeteer');
 
-const { sincronizarBases } = require('./config');
+//const { sincronizarBases } = require('./config');
+//sincronizarBases();
+const { mqttCloud, supabasePool, getMySQLConnection, testSupabaseConnection, sincronizarBases } = require('./config');
 sincronizarBases();
 
 
@@ -66,7 +68,7 @@ try {
   // ==========================================================
 // 📡 Conexión MQTT + sincronización con bases de datos
 // ==========================================================
-  const { mqttCloud, supabasePool, getMySQLConnection, testSupabaseConnection, sincronizarBases } = require('./config');
+ // const { mqttCloud, supabasePool, getMySQLConnection, testSupabaseConnection, sincronizarBases } = require('./config');
 
 // Cuando MQTT se conecta, lanza sincronización de datos
   mqttCloud.on('connect', () => {
