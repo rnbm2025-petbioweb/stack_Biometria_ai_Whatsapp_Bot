@@ -52,10 +52,30 @@ try {
   console.log(`📡 Conectando a LavinMQ (${MQTT_HOST}:${MQTT_PORT})...`);
   mqttCloud = mqtt.connect(`mqtts://${MQTT_HOST}`, mqttOptions);
 
+ /* mqttCloud.on('connect', () => {
+    console.log(`✅ MQTT conectado y suscrito a ${MQTT_TOPIC}`);
+    mqttCloud.subscribe(MQTT_TOPIC);
+  }); */
+
+  // ==========================================================
+// 📡 Conexión MQTT + sincronización con bases de datos
+// ==========================================================
+  const { mqttCloud, supabasePool, getMySQLConnection, testSupabaseConnection, sincronizarBases } = require('./config');
+
+// Cuando MQTT se conecta, lanza sincronización de datos
   mqttCloud.on('connect', () => {
     console.log(`✅ MQTT conectado y suscrito a ${MQTT_TOPIC}`);
     mqttCloud.subscribe(MQTT_TOPIC);
-  });
+
+  // 🔁 Inicia sincronización automática con las bases
+   try {
+     sincronizarBases();
+     testSupabaseConnection();
+   } catch (err) {
+     console.error('⚠️ No se pudo iniciar la sincronización:', err.message);
+   }
+});
+  
 
   mqttCloud.on('message', (topic, msg) =>
     console.log(`📨 [${topic}] ${msg.toString()}`)
