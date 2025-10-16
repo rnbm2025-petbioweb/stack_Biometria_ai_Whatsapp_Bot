@@ -15,6 +15,21 @@ const QRCode = require('qrcode');
 const { createClient } = require('@supabase/supabase-js');
 const mqtt = require('mqtt');
 const puppeteer = require('puppeteer');
+//const { supabasePool } = require('./config');
+
+const { supabasePool } = require('./config'); // ✅ Importa la conexión ya creada
+
+// Ejemplo: probar conexión
+(async () => {
+  try {
+    const res = await supabasePool.query('SELECT NOW()');
+    console.log('✅ Conectado a Supabase:', res.rows[0].now);
+  } catch (err) {
+    console.error('❌ Error al conectar a Supabase:', err.message);
+  }
+})();
+
+
 
 //const { sincronizarBases } = require('./config');
 //sincronizarBases();
@@ -208,6 +223,9 @@ if (!fs.existsSync(chromePath || '')) {
 
 // agregamos esa version segura y compatible:
 
+//   ESTA FUNCION DE LA LINEA 228 LA INCIAMOS AL PRINCIPIO PERO ´POR QUE SE REPETIA
+
+/*
 const { guardarSessionBot } = require('./config');
 const supabasePool = global.supabasePool;
 
@@ -228,7 +246,7 @@ async function cargarSessionDesdeSupabase(sessionId) {
   }
   return null;
 }
-
+*/
 // ==========================================================
 // 🚀 Inicialización principal asíncrona
 // ==========================================================

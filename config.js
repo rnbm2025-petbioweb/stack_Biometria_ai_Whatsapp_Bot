@@ -188,6 +188,9 @@ const mysql = require('mysql2/promise');
 const mqtt = require('mqtt');
 const { Pool } = require('pg');
 
+
+
+
 // ==========================================================
 // ✅ MYSQL — Conexión principal PETBIO
 // ==========================================================
@@ -495,7 +498,8 @@ if (!global.supabasePool) {
     ssl: { rejectUnauthorized: false },
   });
 }
-const supabasePool = global.supabasePool;
+//const supabasePool = global.supabasePool;
+
 
 // 🔍 Verifica conexión Supabase
 async function testSupabaseConnection() {

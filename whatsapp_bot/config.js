@@ -5,6 +5,8 @@ require('dotenv').config();
 const mysql = require('mysql2/promise');
 const mqtt = require('mqtt');
 const { Pool } = require('pg');
+//   esto se deja definido mas abajo en la linea: const { supabasePool } = require('./config');
+
 
 // ==========================================================
 // ✅ MYSQL — Conexión principal PETBIO
@@ -327,6 +329,7 @@ async function testSupabaseConnection() {
   }
 }
 
+module.exports = { supabasePool, testSupabaseConnection };
 // ==========================================================
 // ✅ GUARDAR SESIÓN DEL BOT EN SUPABASE
 // ==========================================================
