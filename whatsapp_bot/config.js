@@ -26,7 +26,80 @@ async function getMySQLConnection() {
   }
 }
 
+// ===============================
+// ✅ MQTT - LavinMQ Cloud (Render)
+// ===============================
+const mqttCloudUrl =
+  process.env.MQTT_CLOUD_BROKER || 'mqtts://duck-01.lmq.cloudamqp.com:8883';
 
+const mqttCloudOptions = {
+  username: process.env.MQTT_CLOUD_USER || 'xdagoqsj:xdagoqsj', // 👉 LavinMQ usa usuario:vhost
+  password: process.env.MQTT_CLOUD_PASS || 'flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L',
+  protocol: 'mqtts',
+  reconnectPeriod: Number(process.env.MQTT_RECONNECT_MS) || 5000,
+  connectTimeout: Number(process.env.MQTT_CONNECT_TIMEOUT_MS) || 30000,
+  rejectUnauthorized: false,
+  ca: undefined,
+  clientId:
+    (process.env.MQTT_CLIENT_ID || 'petbio_bot_') +
+    Math.random().toString(16).substring(2, 8),
+};
+
+console.log('🔑 MQTT LavinMQ Config ->', {
+  broker: mqttCloudUrl,
+  user: mqttCloudOptions.username,
+  pass: mqttCloudOptions.password ? '✅ cargada' : '❌ no definida',
+  protocol: mqttCloudOptions.protocol,
+  clientId: mqttCloudOptions.clientId,
+});
+
+const mqttCloud = mqtt.connect(mqttCloudUrl, mqttCloudOptions);
+
+// 🛠️ Eventos de conexión
+mqttCloud.on('connect', () => {
+  console.log('✅ Conectado a LavinMQ');
+
+  // Suscribirse a un tópico de prueba
+  const testTopic = 'petbio/test';
+  mqttCloud.subscribe(testTopic, (err) => {
+    if (err) {
+      console.error('❌ Error al suscribirse a tópico de prueba:', err.message);
+    } else {
+      console.log(`📡 Suscrito al tópico de prueba: ${testTopic}`);
+    }
+  });
+
+  // Publicar mensaje cada 10 segundos para monitoreo
+  setInterval(() => {
+    const message = JSON.stringify({
+      msg: 'Ping desde PETBIO Bot',
+      timestamp: new Date().toISOString(),
+    });
+    mqttCloud.publish(testTopic, message, { qos: 1 }, (err) => {
+      if (err) console.error('⚠️ Error al publicar mensaje MQTT:', err.message);
+      else console.log(`📤 Enviado a ${testTopic}: ${message}`);
+    });
+  }, 10000); // cada 10 segundos
+});
+
+mqttCloud.on('message', (topic, message) => {
+  console.log(`📥 Mensaje recibido (${topic}): ${message.toString()}`);
+});
+
+mqttCloud.on('reconnect', () => console.log('🔁 Reintentando conexión MQTT...'));
+mqttCloud.on('close', () => console.warn('⚠️ Conexión MQTT cerrada'));
+mqttCloud.on('offline', () => console.warn('⚠️ MQTT offline'));
+mqttCloud.on('error', (err) => {
+  console.error('❌ Error LavinMQ:', err?.message || err);
+  if (err?.message?.includes('Not authorized')) {
+    console.error(
+      '🚨 ERROR: Credenciales MQTT inválidas. Revisa MQTT_CLOUD_USER y MQTT_CLOUD_PASS en tu .env'
+    );
+  }
+});
+
+
+/*
 // ===============================
 // ✅ MQTT - LavinMQ Cloud (Render)
 // ===============================
@@ -66,7 +139,7 @@ mqttCloud.on('error', (err) => {
     console.error('🚨 ERROR: Credenciales MQTT inválidas. Revisa MQTT_CLOUD_USER y MQTT_CLOUD_PASS en tu .env');
   }
 });
-
+*/
 
 /*
 // ==========================================================
