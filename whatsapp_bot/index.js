@@ -1,3 +1,4 @@
+
 // ==========================================================
 // 🤖 PETBIO WhatsApp Bot + Supabase + MQTT LavinMQ
 // ==========================================================
@@ -138,7 +139,9 @@ const deleteSession = async (userId) => {
 // ==========================================================
 // 📁 SESIÓN LOCAL DEL CLIENTE WHATSAPP
 // ==========================================================
-const sessionDir = '/tmp/session';
+//const sessionDir = '/tmp/session'; antes dir temporarl , debemos comentar el .gitignore sessions
+const sessionDir = path.join(__dirname, 'session');
+
 if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
 // ==========================================================
