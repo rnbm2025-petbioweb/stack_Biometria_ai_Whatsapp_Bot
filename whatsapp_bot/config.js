@@ -325,6 +325,26 @@ async function testSupabaseConnection() {
 }
 
 // ==========================================================
+// ✅ GUARDAR SESIÓN DEL BOT EN SUPABASE
+// ==========================================================
+async function guardarSessionBot(sessionId, sessionData) {
+  try {
+    const query = `
+      INSERT INTO whatsapp_sessions (session_id, data, fecha_registro)
+      VALUES ($1, $2, NOW())
+      ON CONFLICT (session_id)
+      DO UPDATE SET data = EXCLUDED.data, fecha_registro = NOW();
+    `;
+
+    await supabasePool.query(query, [sessionId, sessionData]);
+    console.log(`💾 Sesión del bot ${sessionId} guardada/actualizada en Supabase.`);
+  } catch (err) {
+    console.error('❌ Error al guardar sesión en Supabase:', err.message);
+  }
+}
+
+
+// ==========================================================
 // ✅ EXPORTAR COMPONENTES GLOBALES
 // ==========================================================
 module.exports = {
@@ -336,4 +356,5 @@ module.exports = {
   sincronizarBases, // <-- agrega esto
   // mqttLocalDev,
   // mqttLocalProd,
+  guardarSessionBot, // 👈 NUEVO
 };
