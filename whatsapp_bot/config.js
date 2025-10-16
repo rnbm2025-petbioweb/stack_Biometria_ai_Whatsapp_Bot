@@ -165,6 +165,27 @@ async function sincronizarBases() {
   }, 5 * 60 * 1000); // cada 5 minutos
 }
 
+let mqttCloud;
+
+function createMqttClient() {
+  if (!mqttCloud) {
+    const mqtt = require('mqtt');
+    mqttCloud = mqtt.connect({
+      host: 'duck-01.lmq.cloudamqp.com',
+      port: 8883,
+      protocol: 'mqtts',
+      username: process.env.MQTT_USER,
+      password: process.env.MQTT_PASS,
+      clientId: process.env.MQTT_CLIENT_ID || 'petbio_bot_' + Math.random().toString(16).substr(2, 8),
+    });
+
+    mqttCloud.on('connect', () => console.log('✅ Conectado a LavinMQ'));
+    mqttCloud.on('error', err => console.error('❌ Error MQTT:', err.message));
+  }
+
+  return mqttCloud;
+}
+
 
 /*
 // ===============================
