@@ -42,7 +42,7 @@ const MQTT_USER = process.env.MQTT_USER;
 const MQTT_PASS = process.env.MQTT_PASS;
 const MQTT_TOPIC = process.env.MQTT_TOPIC || 'petbio/test';
 
-let mqttCloud = null;
+//let mqttCloud = null;
 
 try {
   const mqttOptions = {
