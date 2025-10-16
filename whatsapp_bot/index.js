@@ -194,7 +194,7 @@ try {
 // 🌐 EXPRESS HEALTHCHECK + QR
 // ==========================================================
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 const qrPath = path.join(sessionDir, 'whatsapp_qr.png');
 
 app.get('/health', (req, res) => {
