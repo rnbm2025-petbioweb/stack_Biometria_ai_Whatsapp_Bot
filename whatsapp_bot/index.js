@@ -141,6 +141,8 @@ const deleteSession = async (userId) => {
 // ==========================================================
 // 🔁 Cargar sesión del bot desde Supabase (para restaurar si existe)
 // ==========================================================
+// 
+/*   esto se repite en la linea 208
 async function cargarSessionDesdeSupabase(sessionId) {
   try {
     const res = await supabasePool.query(
@@ -156,7 +158,7 @@ async function cargarSessionDesdeSupabase(sessionId) {
     console.error('⚠️ Error al cargar sesión desde Supabase:', err.message);
   }
   return null;
-}
+}  */
 
 // ==========================================================
 // 📁 SESIÓN LOCAL DEL CLIENTE WHATSAPP
