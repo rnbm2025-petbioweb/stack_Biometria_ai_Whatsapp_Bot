@@ -5,7 +5,7 @@ require('dotenv').config();
 const mysql = require('mysql2/promise');
 const mqtt = require('mqtt');
 const { Pool } = require('pg');
-//   esto se deja definido mas abajo en la linea: const { supabasePool } = require('./config');
+//   esto se deja definido mas abajo en la linea: 308 const { supabasePool } = require('./config');
 
 
 // ==========================================================
