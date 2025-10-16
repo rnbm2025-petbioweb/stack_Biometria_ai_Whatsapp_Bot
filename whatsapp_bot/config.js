@@ -99,6 +99,73 @@ mqttCloud.on('error', (err) => {
 });
 
 
+// ==========================================================
+// 🚀 Integración MQTT ↔ MySQL ↔ Supabase (Eventos reales)
+// ==========================================================
+async function sincronizarBases() {
+  console.log('🔄 Inicializando sincronización MQTT con MySQL y Supabase...');
+
+  // Tópicos donde se publican/reciben eventos
+  const topicRegistro = 'petbio/registro';
+  const topicActualizacion = 'petbio/actualizacion';
+  const topicSync = 'petbio/sync';
+
+  // Suscribirse a los tópicos principales
+  mqttCloud.subscribe([topicRegistro, topicActualizacion], (err) => {
+    if (err) console.error('❌ Error al suscribirse a tópicos:', err.message);
+    else console.log(`📡 Suscrito a tópicos: ${topicRegistro}, ${topicActualizacion}`);
+  });
+
+  // Escuchar mensajes entrantes
+  mqttCloud.on('message', async (topic, message) => {
+    try {
+      const data = JSON.parse(message.toString());
+      console.log(`📥 Evento recibido [${topic}]:`, data);
+
+      if (topic === topicRegistro) {
+        // Guardar nuevo usuario en MySQL
+        const conn = await getMySQLConnection();
+        await conn.execute(
+          'INSERT INTO usuarios (nombre, email, telefono) VALUES (?, ?, ?)',
+          [data.nombre, data.email, data.telefono]
+        );
+        await conn.end();
+        console.log('✅ Usuario registrado en MySQL:', data.email);
+      }
+
+      if (topic === topicActualizacion) {
+        // Actualizar datos del usuario en Supabase
+        const query = `UPDATE usuarios SET telefono='${data.telefono}' WHERE email='${data.email}'`;
+        await supabasePool.query(query);
+        console.log('✅ Usuario actualizado en Supabase:', data.email);
+      }
+    } catch (err) {
+      console.error('⚠️ Error procesando mensaje MQTT:', err.message);
+    }
+  });
+
+  // Publicar sincronización cada 5 minutos
+  setInterval(async () => {
+    try {
+      const conn = await getMySQLConnection();
+      const [rows] = await conn.query('SELECT COUNT(*) AS total FROM usuarios');
+      conn.end();
+
+      const payload = {
+        origen: 'MySQL_petbio_secure',
+        total_registros: rows[0].total,
+        timestamp: new Date().toISOString(),
+      };
+
+      mqttCloud.publish(topicSync, JSON.stringify(payload), { qos: 1 });
+      console.log('📤 Publicado resumen de sincronización:', payload);
+    } catch (err) {
+      console.error('⚠️ Error publicando sincronización MQTT:', err.message);
+    }
+  }, 5 * 60 * 1000); // cada 5 minutos
+}
+
+
 /*
 // ===============================
 // ✅ MQTT - LavinMQ Cloud (Render)
