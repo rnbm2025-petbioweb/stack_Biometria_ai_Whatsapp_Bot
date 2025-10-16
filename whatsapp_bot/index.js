@@ -15,6 +15,11 @@ const { createClient } = require('@supabase/supabase-js');
 const mqtt = require('mqtt');
 const puppeteer = require('puppeteer');
 
+const { sincronizarBases } = require('./config');
+sincronizarBases();
+
+
+
 // ==========================================================
 // 🌐 CONFIGURACIÓN SUPABASE
 // ==========================================================
