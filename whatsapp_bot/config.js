@@ -311,6 +311,7 @@ module.exports = {
   mqttCloud,
   supabasePool,
   testSupabaseConnection,
+  sincronizarBases, // <-- agrega esto
   // mqttLocalDev,
   // mqttLocalProd,
 };
