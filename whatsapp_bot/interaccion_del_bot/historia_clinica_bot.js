@@ -227,7 +227,7 @@ client.on('message', (topic, message) => {
  */
 
 const mysql = require('mysql2/promise');
-const { mqttClient } = require('./config'); // 🔁 Usa el cliente compartido
+const { mqttClient } = require('../config'); // 🔁 Usa el cliente compartido
 
 // ==========================
 // Configuración DB
