@@ -401,7 +401,8 @@ module.exports = {
   mqttClient: mqttCloud, // 👈 alias compatible
   supabasePool,
   testSupabaseConnection,
-  sincronizarBases, // <-- agrega esto
+  sincronizarBases,
+  supabasePool, // <-- agrega esto
   // mqttLocalDev,
   // mqttLocalProd,
   guardarSessionBot, // 👈 NUEVO
