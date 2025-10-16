@@ -139,6 +139,26 @@ const deleteSession = async (userId) => {
 };
 
 // ==========================================================
+// 🔁 Cargar sesión del bot desde Supabase (para restaurar si existe)
+// ==========================================================
+async function cargarSessionDesdeSupabase(sessionId) {
+  try {
+    const res = await supabasePool.query(
+      'SELECT data FROM whatsapp_sessions WHERE session_id = $1',
+      [sessionId]
+    );
+    if (res.rows.length > 0) {
+      console.log(`📦 Sesión restaurada desde Supabase (${sessionId})`);
+      return JSON.parse(res.rows[0].data);
+    }
+    console.warn(`⚠️ No se encontró sesión guardada (${sessionId})`);
+  } catch (err) {
+    console.error('⚠️ Error al cargar sesión desde Supabase:', err.message);
+  }
+  return null;
+}
+
+// ==========================================================
 // 📁 SESIÓN LOCAL DEL CLIENTE WHATSAPP
 // ==========================================================
 //const sessionDir = '/tmp/session'; antes dir temporarl , debemos comentar el .gitignore sessions
@@ -176,6 +196,115 @@ if (!fs.existsSync(chromePath || '')) {
   console.error('👉 Asegúrate de tener en el build command: npx puppeteer install chrome');
 }
 
+
+// agregamas parte para cargar session del bot:
+
+// ==========================================================
+// 🔁 Cargar sesión del bot desde Supabase (para restaurar si existe)
+// ==========================================================
+const { supabasePool, guardarSessionBot } = require('./config'); // asegúrate que 'config.js' exporte ambas funciones
+
+async function cargarSessionDesdeSupabase(sessionId) {
+  try {
+    const res = await supabasePool.query(
+      'SELECT data FROM whatsapp_sessions WHERE session_id = $1',
+      [sessionId]
+    );
+    if (res.rows.length > 0) {
+      console.log(`📦 Sesión restaurada desde Supabase (${sessionId})`);
+      return JSON.parse(res.rows[0].data);
+    }
+    console.warn(`⚠️ No se encontró sesión guardada (${sessionId})`);
+  } catch (err) {
+    console.error('⚠️ Error al cargar sesión desde Supabase:', err.message);
+  }
+  return null;
+}
+
+// ==========================================================
+// 🚀 Inicialización principal asíncrona
+// ==========================================================
+(async () => {
+  // 🤖 CLIENTE WHATSAPP (config Render-ready)
+  let whatsappClient;
+
+  try {
+    // Intentar restaurar sesión guardada antes de crear el cliente
+    const restoredSession = await cargarSessionDesdeSupabase('petbio_bot_main');
+
+    whatsappClient = new Client({
+      authStrategy: new LocalAuth({ dataPath: sessionDir }),
+      session: restoredSession || undefined, // usa la sesión si existe
+      puppeteer: {
+        executablePath: chromePath,
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-gpu',
+          '--disable-dev-shm-usage',
+          '--no-zygote',
+          '--disable-software-rasterizer',
+          '--disable-extensions',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor',
+          '--single-process'
+        ],
+      },
+    });
+
+    // ==========================================================
+    // 💾 Guardar sesión automáticamente al autenticarse
+    // ==========================================================
+    whatsappClient.on('authenticated', async (session) => {
+      console.log('✅ Bot autenticado, guardando sesión en Supabase...');
+      try {
+        await guardarSessionBot('petbio_bot_main', JSON.stringify(session));
+        console.log('💾 Sesión guardada correctamente en Supabase.');
+      } catch (err) {
+        console.error('⚠️ No se pudo guardar sesión en Supabase:', err.message);
+      }
+    });
+
+    // ==========================================================
+    // 🟢 Inicializar el cliente
+    // ==========================================================
+    await whatsappClient.initialize();
+    console.log('🚀 PETBIO WhatsApp Bot inicializado correctamente.');
+
+  } catch (err) {
+    console.error('⚠️ Error al inicializar el cliente WhatsApp:', err.message);
+  }
+})();
+
+
+//   este fragmento de abajo solo faltaba  dejarlo dentro de la funcion async function cargarSessionDesdeSupabase
+
+/*
+// ==========================================================
+// 🔁 Cargar sesión del bot desde Supabase (para restaurar si existe)
+// ==========================================================
+const { supabasePool } = require('./config'); // asegúrate que 'config.js' exporte supabasePool o la conexión
+
+async function cargarSessionDesdeSupabase(sessionId) {
+  try {
+    const res = await supabasePool.query(
+      'SELECT data FROM whatsapp_sessions WHERE session_id = $1',
+      [sessionId]
+    );
+    if (res.rows.length > 0) {
+      console.log(`📦 Sesión restaurada desde Supabase (${sessionId})`);
+      return JSON.parse(res.rows[0].data);
+    }
+    console.warn(`⚠️ No se encontró sesión guardada (${sessionId})`);
+  } catch (err) {
+    console.error('⚠️ Error al cargar sesión desde Supabase:', err.message);
+  }
+  return null;
+}
+
+
+
 // ==========================================================
 // 🤖 CLIENTE WHATSAPP (config Render-ready)
 // ==========================================================
@@ -201,11 +330,30 @@ try {
       ],
     },
   });
+
+  // ==========================================================
+// 💾 Sincronización de sesión con Supabase (guardar al autenticar)
+// ==========================================================
+const { guardarSessionBot } = require('./config'); // ajusta ruta si tu config.js está en el mismo nivel
+
+if (whatsappClient) {
+  whatsappClient.on('authenticated', async (session) => {
+    console.log('✅ Bot autenticado, guardando sesión en Supabase...');
+    try {
+      await guardarSessionBot('petbio_bot_main', JSON.stringify(session));
+      console.log('💾 Sesión guardada correctamente en Supabase.');
+    } catch (err) {
+      console.error('⚠️ No se pudo guardar sesión en Supabase:', err.message);
+    }
+  });
+}
+
+
 } catch (err) {
   console.error('⚠️ Puppeteer no pudo inicializar correctamente:', err.message);
   whatsappClient = null;
 }
-
+*/
 // ==========================================================
 // 🌐 EXPRESS HEALTHCHECK + QR
 // ==========================================================
