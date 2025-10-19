@@ -380,6 +380,8 @@ if (whatsappClient) {
   whatsappClient = null;
 }
 */
+
+/*
 // ==========================================================
 // 🌐 EXPRESS HEALTHCHECK + QR
 // ==========================================================
@@ -403,6 +405,8 @@ app.get('/qr', (req, res) => {
 
 app.listen(PORT, () => console.log(`🌐 Healthcheck activo en puerto ${PORT}`));
 
+
+*/
 // ==========================================================
 // 📲 EVENTOS DEL CLIENTE WHATSAPP
 // ==========================================================
@@ -527,3 +531,28 @@ if (whatsappClient) {
   console.warn('⚠️ WhatsApp no se inicializó (Chromium ausente o fallo en Puppeteer).');
   console.warn('👉 Revisa que el build de Render ejecute correctamente el script "postinstall": "puppeteer install"');
 }
+
+// ==========================================================
+// 🌐 EXPRESS HEALTHCHECK + QR (Render ready)
+// ==========================================================
+const app = express();
+const PORT = process.env.PORT || 10000;
+const qrPath = path.join(sessionDir, 'whatsapp_qr.png');
+
+app.get('/health', (req, res) => {
+  res.json({
+    status: '✅ PETBIO Bot activo',
+    supabase: !!supabaseKey,
+    mqtt: mqttCloud?.connected || false,
+    whatsapp: whatsappClient?.info ? "✅ Conectado" : "⏳ Esperando conexión"
+  });
+});
+
+app.get('/qr', (req, res) => {
+  if (fs.existsSync(qrPath)) res.sendFile(qrPath);
+  else res.status(404).send('❌ QR aún no generado');
+});
+
+app.listen(PORT, () => {
+  console.log(`🌐 Healthcheck activo en puerto ${PORT}`);
+});
