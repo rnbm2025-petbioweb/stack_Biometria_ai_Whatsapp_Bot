@@ -301,7 +301,7 @@ const mqttLocalProd = mqtt.connect(process.env.MQTT_LOCAL_BROKER || 'mqtt://127.
 mqttLocalProd.on('connect', () => console.log('✅ Conectado a Mosquitto PROD'));
 mqttLocalProd.on('error', (err) => console.error('❌ Error Mosquitto PROD:', err.message));
 */
-
+/*
 // ==========================================================
 // ✅ SUPABASE (PostgreSQL interno del bot)
 // ==========================================================
@@ -392,7 +392,7 @@ async function guardarSessionBot(sessionId, sessionData) {
   } catch (err) {
     console.error('❌ Error al guardar sesión en Supabase:', err.message);
   }
-}   */
+}   
 
 
 // ==========================================================
@@ -410,3 +410,64 @@ module.exports = {
   // mqttLocalProd,
   guardarSessionBot, // 👈 NUEVO
 };
+
+*/
+
+// ==========================================================
+// ✅ SUPABASE (PostgreSQL interno del bot)
+// ==========================================================
+if (!global.supabasePool) {
+  global.supabasePool = new Pool({
+    host: process.env.SUPABASE_HOST || 'db.jbsxvonnrahhfffeacdy.supabase.co',
+    port: process.env.SUPABASE_PORT || 5432,
+    user: process.env.SUPABASE_USER || 'postgres',
+    password: process.env.SUPABASE_PASS || 'R00t_Segura_2025!',
+    database: process.env.SUPABASE_DB || 'postgres',
+    ssl: { rejectUnauthorized: false },
+  });
+}
+const supabasePool = global.supabasePool;
+
+// 🔍 Verifica conexión Supabase
+async function testSupabaseConnection() {
+  try {
+    const client = await supabasePool.connect();
+    const res = await client.query('SELECT NOW()');
+    console.log('✅ Conectado a Supabase, hora actual:', res.rows[0].now);
+    client.release();
+  } catch (err) {
+    console.error('❌ Error al conectar a Supabase:', err.message);
+  }
+}
+
+// ==========================================================
+// ✅ GUARDAR SESIÓN DEL BOT EN SUPABASE
+// ==========================================================
+async function guardarSessionBot(sessionId, sessionData) {
+  try {
+    const query = `
+      INSERT INTO whatsapp_sessions (session_id, data, fecha_registro)
+      VALUES ($1, $2, NOW())
+      ON CONFLICT (session_id)
+      DO UPDATE SET data = EXCLUDED.data, fecha_registro = NOW();
+    `;
+    await supabasePool.query(query, [sessionId, sessionData]);
+    console.log(`💾 Sesión del bot ${sessionId} guardada/actualizada en Supabase.`);
+  } catch (err) {
+    console.error('❌ Error al guardar sesión en Supabase:', err.message);
+  }
+}
+
+// ==========================================================
+// ✅ EXPORTAR COMPONENTES GLOBALES
+// ==========================================================
+module.exports = {
+  getMySQLConnection,
+  mqttCloud,
+  mqttClient: mqttCloud,
+  supabasePool,
+  testSupabaseConnection,
+  sincronizarBases,
+  guardarSessionBot,
+};
+
