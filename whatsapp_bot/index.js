@@ -19,15 +19,6 @@ const puppeteer = require('puppeteer');
 
 //const { supabasePool } = require('./config'); // ✅ Importa la conexión ya creada
 
-// Ejemplo: probar conexión
-(async () => {
-  try {
-    const res = await supabasePool.query('SELECT NOW()');
-    console.log('✅ Conectado a Supabase:', res.rows[0].now);
-  } catch (err) {
-    console.error('❌ Error al conectar a Supabase:', err.message);
-  }
-})();
 
 
 
@@ -37,6 +28,15 @@ const { mqttCloud, supabasePool, getMySQLConnection, testSupabaseConnection, sin
 sincronizarBases();
 
 
+// Ejemplo: probar conexión
+(async () => {
+  try {
+    const res = await supabasePool.query('SELECT NOW()');
+    console.log('✅ Conectado a Supabase:', res.rows[0].now);
+  } catch (err) {
+    console.error('❌ Error al conectar a Supabase:', err.message);
+  }
+})();
 
 // ==========================================================
 // 🌐 CONFIGURACIÓN SUPABASE
