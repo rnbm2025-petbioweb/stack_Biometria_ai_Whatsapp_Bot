@@ -7,7 +7,7 @@
 
 require('dotenv').config();
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs'); 
 const express = require('express');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
@@ -17,7 +17,7 @@ const mqtt = require('mqtt');
 const puppeteer = require('puppeteer');
 //const { supabasePool } = require('./config');
 
-const { supabasePool } = require('./config'); // ✅ Importa la conexión ya creada
+//const { supabasePool } = require('./config'); // ✅ Importa la conexión ya creada
 
 // Ejemplo: probar conexión
 (async () => {
