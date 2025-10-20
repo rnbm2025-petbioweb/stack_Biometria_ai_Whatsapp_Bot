@@ -137,6 +137,7 @@ try {
 }
 
 
+/*
 
 // ==========================================================
 // 🤖 CLIENTE WHATSAPP con sesión en Supabase
@@ -204,7 +205,7 @@ try {
   }
 })();
 
-
+*/
 /*
 // ==========================================================
 // 🤖 CLIENTE WHATSAPP
@@ -240,6 +241,79 @@ if (chromePath) {
 }   */
 
 
+
+
+// ==========================================================
+// 🤖 CLIENTE WHATSAPP (Sesión persistente en Supabase)
+// ==========================================================
+
+(async () => {
+  try {
+    console.log('🔁 Intentando restaurar sesión desde Supabase...');
+
+    // Busca la sesión guardada
+    const { data, error } = await supabase
+      .from('whatsapp_sessions')
+      .select('data')
+      .eq('session_id', 'test_session')
+      .maybeSingle();
+
+    const restoredSession = data ? JSON.parse(data.data) : null;
+
+    if (error) console.error('⚠️ Error cargando sesión:', error.message);
+    console.log(restoredSession ? '✅ Sesión restaurada desde Supabase' : '⚠️ No se encontró sesión previa');
+
+    // Inicializa el cliente WhatsApp con la sesión restaurada
+    const whatsappClient = new Client({
+      session: restoredSession || undefined,
+      puppeteer: {
+        executablePath: chromePath,
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-gpu',
+          '--disable-dev-shm-usage',
+          '--disable-software-rasterizer',
+          '--single-process',
+        ],
+      },
+    });
+
+    // Si no hay sesión, genera el QR
+    whatsappClient.on('qr', (qr) => {
+      console.log('📲 Escanea este código QR:');
+      qrcode.generate(qr, { small: true });
+    });
+
+    // Cuando se autentica, guarda la sesión
+    whatsappClient.on('authenticated', async (session) => {
+      console.log('✅ Autenticado, guardando sesión en Supabase...');
+      try {
+        await supabase.from('whatsapp_sessions').upsert({
+          session_id: 'test_session',
+          data: JSON.stringify(session),
+          updated_at: new Date(),
+        });
+        console.log('💾 Sesión guardada correctamente.');
+      } catch (err) {
+        console.error('⚠️ Error guardando sesión en Supabase:', err.message);
+      }
+    });
+
+    // Confirmación de conexión
+    whatsappClient.on('ready', () => console.log('🤖 Bot listo y conectado.'));
+    whatsappClient.on('disconnected', (reason) => {
+      console.warn('⚠️ Cliente desconectado:', reason);
+      setTimeout(() => whatsappClient.initialize(), 8000);
+    });
+
+    // Inicia el cliente
+    await whatsappClient.initialize();
+  } catch (err) {
+    console.error('❌ Error inicializando cliente WhatsApp:', err.message);
+  }
+})();
 
 
 // ==========================================================
