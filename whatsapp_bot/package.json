@@ -4,7 +4,7 @@
   "description": "Bot de WhatsApp integrado con PETBIO y Biometría AI",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node fixPuppeteer.js && node index.js",
     "build": "npx puppeteer install chrome",
     "postinstall": "npx puppeteer install chrome",
     "test": "echo \"⚠️ No hay tests definidos\" && exit 0"
@@ -43,7 +43,8 @@
     "puppeteer",
     "petbio",
     "supabase",
-    "lavinmq"
+    "lavinmq",
+    "biometria"
   ],
   "author": "PETBIO",
   "license": "MIT"
