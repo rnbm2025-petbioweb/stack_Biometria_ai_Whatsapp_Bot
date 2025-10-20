@@ -136,6 +136,76 @@ try {
   chromePath = undefined;
 }
 
+
+
+// ==========================================================
+// 🤖 CLIENTE WHATSAPP con sesión en Supabase
+// ==========================================================
+
+(async () => {
+  try {
+    console.log('🔁 Intentando restaurar sesión desde Supabase...');
+    const { data, error } = await supabase
+      .from('whatsapp_sessions')
+      .select('data')
+      .eq('session_id', 'petbio_bot_main')
+      .maybeSingle();
+
+    const restoredSession = data ? JSON.parse(data.data) : null;
+    console.log(restoredSession ? '✅ Sesión restaurada desde Supabase' : '⚠️ No se encontró sesión previa');
+
+    whatsappClient = new Client({
+      session: restoredSession || undefined,
+      puppeteer: {
+        executablePath: chromePath,
+        headless: true,
+        dumpio: false,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-gpu',
+          '--disable-dev-shm-usage',
+          '--disable-software-rasterizer',
+          '--single-process'
+        ],
+      },
+    });
+
+    // 🔐 Guardar sesión al autenticarse
+    whatsappClient.on('authenticated', async (session) => {
+      console.log('✅ Autenticado, guardando sesión en Supabase...');
+      try {
+        await supabase.from('whatsapp_sessions').upsert({
+          session_id: 'petbio_bot_main',
+          data: JSON.stringify(session),
+          fecha_registro: new Date(),
+        });
+        console.log('💾 Sesión guardada correctamente.');
+      } catch (err) {
+        console.error('⚠️ Error guardando sesión en Supabase:', err.message);
+      }
+    });
+
+    // 📲 Mostrar QR
+    whatsappClient.on('qr', (qr) => {
+      console.log('📲 Escanea este código QR:');
+      qrcode.generate(qr, { small: true });
+    });
+
+    whatsappClient.on('ready', () => console.log('✅ Bot listo y conectado.'));
+    whatsappClient.on('disconnected', (reason) => {
+      console.warn('⚠️ Cliente desconectado:', reason);
+      setTimeout(() => whatsappClient.initialize(), 8000);
+    });
+
+    await whatsappClient.initialize();
+  } catch (err) {
+    console.error('❌ Error inicializando WhatsApp:', err.message);
+  }
+})();
+
+
+/*
 // ==========================================================
 // 🤖 CLIENTE WHATSAPP
 // ==========================================================
@@ -167,7 +237,10 @@ if (chromePath) {
   }
 } else {
   console.warn('⚠️ Cliente WhatsApp no se inicializó: Chrome no detectado.');
-}
+}   */
+
+
+
 
 // ==========================================================
 // 🌐 EXPRESS HEALTHCHECK + QR
