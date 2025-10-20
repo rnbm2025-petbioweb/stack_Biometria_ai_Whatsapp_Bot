@@ -4,9 +4,10 @@
   "description": "Bot de WhatsApp integrado con PETBIO y Biometría AI",
   "main": "index.js",
   "scripts": {
-    "start": "npx puppeteer browsers install chrome && node index.js",
-    "postinstall": "echo '✔️ Postinstall omitido: Chrome se instalará al iniciar'",
-    "test": "echo \"Error: no test specified OJO CON ESTE PACKAGE\" && exit 1"
+    "start": "node index.js",
+    "build": "npx puppeteer install chrome",
+    "postinstall": "npx puppeteer install chrome",
+    "test": "echo \"⚠️ No hay tests definidos\" && exit 0"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",
@@ -30,8 +31,11 @@
     "uuid": "^8.3.2",
     "whatsapp-web.js": "^1.19.0"
   },
+  "puppeteer": {
+    "cacheDirectory": "/opt/render/.cache/puppeteer"
+  },
   "engines": {
-    "node": ">=22.0.0"
+    "node": "22.x"
   },
   "keywords": [
     "whatsapp",
