@@ -1,13 +1,13 @@
 // ==========================================================
 // 🤖 PETBIO WhatsApp Bot + Supabase + MQTT LavinMQ
-// Versión Render-ready con sesión persistente
+// Versión Render-ready con sesión persistente (Supabase)
 // ==========================================================
 
 require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
 const express = require('express');
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client } = require('whatsapp-web.js'); // sin LocalAuth (usaremos session:)
 const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
 const { createClient } = require('@supabase/supabase-js');
@@ -58,7 +58,9 @@ const initMQTT = () => {
 
     mqttCloud.on('connect', () => {
       console.log(`✅ MQTT conectado y suscrito a ${MQTT_TOPIC}`);
-      mqttCloud.subscribe(MQTT_TOPIC);
+      mqttCloud.subscribe(MQTT_TOPIC, (err) => {
+        if (err) console.warn('⚠️ Error suscribiendo tópico MQTT:', err.message);
+      });
     });
 
     mqttCloud.on('message', (topic, msg) =>
@@ -66,7 +68,7 @@ const initMQTT = () => {
     );
 
     mqttCloud.on('error', err =>
-      console.error('⚠️ Error MQTT:', err.message)
+      console.error('⚠️ Error MQTT:', err?.message || err)
     );
 
     mqttCloud.on('close', () =>
@@ -81,13 +83,21 @@ const initMQTT = () => {
 initMQTT();
 
 // ==========================================================
-// 🧠 FUNCIONES SUPABASE (sesiones)
+// 🧠 FUNCIONES SUPABASE (sessions de usuarios - UI)
 // ==========================================================
 const SESSION_TTL = 1000 * 60 * 60 * 12; // 12 horas
 
 const getSession = async (userId) => {
   try {
-    const { data } = await supabase.from('sessions').select('*').eq('user_id', userId).single();
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    if (error) {
+      // no existe -> ok
+      return {};
+    }
     if (data && Date.now() - new Date(data.last_active).getTime() < SESSION_TTL) {
       return JSON.parse(data.data);
     }
@@ -118,11 +128,12 @@ const deleteSession = async (userId) => {
 };
 
 // ==========================================================
-// 📁 SESIÓN LOCAL DEL CLIENTE WHATSAPP
+// 📁 SESIÓN LOCAL (solo para almacenar QR temporalmente)
 // ==========================================================
 const sessionDir = '/tmp/session';
 if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
-console.log(`📁 Sesiones WhatsApp persistentes en: ${sessionDir}`);
+const qrPath = path.join(sessionDir, 'whatsapp_qr.png');
+console.log(`📁 Sesiones WhatsApp temporales en: ${sessionDir}`);
 
 // ==========================================================
 // 🧩 DETECCIÓN DE CHROME EN RENDER
@@ -136,135 +147,77 @@ try {
   chromePath = undefined;
 }
 
-
-/*
-
 // ==========================================================
-// 🤖 CLIENTE WHATSAPP con sesión en Supabase
+// 🔁 Helpers para guardar / cargar sesión del BOT en Supabase
+// (tabla: whatsapp_sessions with columns session_id TEXT PRIMARY KEY, data JSONB, fecha_registro TIMESTAMP, updated_at TIMESTAMP)
 // ==========================================================
+const BOT_SESSION_ID = process.env.BOT_SESSION_ID || 'test_session';
 
-(async () => {
+async function cargarSessionDelBot(sessionId = BOT_SESSION_ID) {
   try {
-    console.log('🔁 Intentando restaurar sesión desde Supabase...');
     const { data, error } = await supabase
       .from('whatsapp_sessions')
       .select('data')
-      .eq('session_id', 'petbio_bot_main')
+      .eq('session_id', sessionId)
       .maybeSingle();
 
-    const restoredSession = data ? JSON.parse(data.data) : null;
-    console.log(restoredSession ? '✅ Sesión restaurada desde Supabase' : '⚠️ No se encontró sesión previa');
+    if (error) {
+      console.warn('⚠️ cargarSessionDelBot error:', error.message || error);
+      return null;
+    }
+    if (!data) return null;
 
-    whatsappClient = new Client({
-      session: restoredSession || undefined,
-      puppeteer: {
-        executablePath: chromePath,
-        headless: true,
-        dumpio: false,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-gpu',
-          '--disable-dev-shm-usage',
-          '--disable-software-rasterizer',
-          '--single-process'
-        ],
-      },
-    });
-
-    // 🔐 Guardar sesión al autenticarse
-    whatsappClient.on('authenticated', async (session) => {
-      console.log('✅ Autenticado, guardando sesión en Supabase...');
+    // data.data puede ser JSON (jsonb) o texto; maneja ambos
+    const raw = data.data;
+    if (!raw) return null;
+    if (typeof raw === 'string') {
       try {
-        await supabase.from('whatsapp_sessions').upsert({
-          session_id: 'petbio_bot_main',
-          data: JSON.stringify(session),
-          fecha_registro: new Date(),
-        });
-        console.log('💾 Sesión guardada correctamente.');
-      } catch (err) {
-        console.error('⚠️ Error guardando sesión en Supabase:', err.message);
+        return JSON.parse(raw);
+      } catch (e) {
+        console.warn('⚠️ cargarSessionDelBot: JSON.parse falló, retornando raw string');
+        return raw;
       }
-    });
-
-    // 📲 Mostrar QR
-    whatsappClient.on('qr', (qr) => {
-      console.log('📲 Escanea este código QR:');
-      qrcode.generate(qr, { small: true });
-    });
-
-    whatsappClient.on('ready', () => console.log('✅ Bot listo y conectado.'));
-    whatsappClient.on('disconnected', (reason) => {
-      console.warn('⚠️ Cliente desconectado:', reason);
-      setTimeout(() => whatsappClient.initialize(), 8000);
-    });
-
-    await whatsappClient.initialize();
+    }
+    // ya es objeto (jsonb)
+    return raw;
   } catch (err) {
-    console.error('❌ Error inicializando WhatsApp:', err.message);
+    console.error('⚠️ Error cargando sesión del bot:', err.message);
+    return null;
   }
-})();
+}
 
-*/
-/*
-// ==========================================================
-// 🤖 CLIENTE WHATSAPP
-// ==========================================================
-let whatsappClient;
-if (chromePath) {
+async function guardarSessionDelBot(sessionObj, sessionId = BOT_SESSION_ID) {
   try {
-    whatsappClient = new Client({
-      authStrategy: new LocalAuth({ dataPath: sessionDir }),
-      puppeteer: {
-        executablePath: chromePath,
-        headless: true,
-        dumpio: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-gpu',
-          '--disable-dev-shm-usage',
-          '--no-zygote',
-          '--disable-software-rasterizer',
-          '--disable-extensions',
-          '--disable-web-security',
-          '--disable-features=VizDisplayCompositor',
-          '--single-process'
-        ],
-      },
+    const payload = typeof sessionObj === 'string' ? sessionObj : JSON.stringify(sessionObj);
+    await supabase.from('whatsapp_sessions').upsert({
+      session_id: sessionId,
+      data: payload,
+      updated_at: new Date(),
+      fecha_registro: new Date()
     });
+    console.log('💾 Sesión del bot guardada en Supabase.');
   } catch (err) {
-    console.error('⚠️ Puppeteer no pudo inicializar correctamente:', err.message);
+    console.error('⚠️ Error guardando sesión del bot en Supabase:', err.message);
   }
-} else {
-  console.warn('⚠️ Cliente WhatsApp no se inicializó: Chrome no detectado.');
-}   */
-
-
-
+}
 
 // ==========================================================
 // 🤖 CLIENTE WHATSAPP (Sesión persistente en Supabase)
 // ==========================================================
+let whatsappClient = null;
 
 (async () => {
+  if (!chromePath) {
+    console.error('❌ No hay chromePath válido. Abortando inicialización de WhatsApp.');
+    return;
+  }
+
   try {
-    console.log('🔁 Intentando restaurar sesión desde Supabase...');
-
-    // Busca la sesión guardada
-    const { data, error } = await supabase
-      .from('whatsapp_sessions')
-      .select('data')
-      .eq('session_id', 'test_session')
-      .maybeSingle();
-
-    const restoredSession = data ? JSON.parse(data.data) : null;
-
-    if (error) console.error('⚠️ Error cargando sesión:', error.message);
+    console.log('🔁 Intentando restaurar sesión del bot desde Supabase...');
+    const restoredSession = await cargarSessionDelBot(BOT_SESSION_ID);
     console.log(restoredSession ? '✅ Sesión restaurada desde Supabase' : '⚠️ No se encontró sesión previa');
 
-    // Inicializa el cliente WhatsApp con la sesión restaurada
-    const whatsappClient = new Client({
+    whatsappClient = new Client({
       session: restoredSession || undefined,
       puppeteer: {
         executablePath: chromePath,
@@ -280,55 +233,51 @@ if (chromePath) {
       },
     });
 
-    // Si no hay sesión, genera el QR
-    whatsappClient.on('qr', (qr) => {
-      console.log('📲 Escanea este código QR:');
+    // QR -> si no hay sesión válida este evento aparecerá
+    whatsappClient.on('qr', async (qr) => {
+      console.log('📲 QR generado (escanealo una vez):');
       qrcode.generate(qr, { small: true });
-    });
-
-    // Cuando se autentica, guarda la sesión
-    whatsappClient.on('authenticated', async (session) => {
-      console.log('✅ Autenticado, guardando sesión en Supabase...');
       try {
-        await supabase.from('whatsapp_sessions').upsert({
-          session_id: 'test_session',
-          data: JSON.stringify(session),
-          updated_at: new Date(),
-        });
-        console.log('💾 Sesión guardada correctamente.');
-      } catch (err) {
-        console.error('⚠️ Error guardando sesión en Supabase:', err.message);
-      }
+        await QRCode.toFile(qrPath, qr, { width: 300 });
+      } catch (_) {}
     });
 
-    // Confirmación de conexión
-    whatsappClient.on('ready', () => console.log('🤖 Bot listo y conectado.'));
+    // Al autenticarse: guardar sesión en Supabase
+    whatsappClient.on('authenticated', async (session) => {
+      console.log('🔐 Autenticado: guardando sesión en Supabase...');
+      await guardarSessionDelBot(session, BOT_SESSION_ID);
+    });
+
+    whatsappClient.on('ready', () => {
+      console.log('✅ Cliente WhatsApp listo y conectado.');
+    });
+
     whatsappClient.on('disconnected', (reason) => {
       console.warn('⚠️ Cliente desconectado:', reason);
-      setTimeout(() => whatsappClient.initialize(), 8000);
+      // eliminar sesión en Supabase para forzar nuevo flujo si es un cierre no esperado (opcional)
+      // await supabase.from('whatsapp_sessions').delete().eq('session_id', BOT_SESSION_ID);
+      setTimeout(() => whatsappClient?.initialize(), 8000);
     });
 
-    // Inicia el cliente
     await whatsappClient.initialize();
+    console.log('🚀 WhatsApp client initialized.');
   } catch (err) {
-    console.error('❌ Error inicializando cliente WhatsApp:', err.message);
+    console.error('❌ Error inicializando WhatsApp client:', err?.message || err);
   }
 })();
-
 
 // ==========================================================
 // 🌐 EXPRESS HEALTHCHECK + QR
 // ==========================================================
 const app = express();
 const PORT = process.env.PORT || 3000;
-const qrPath = path.join(sessionDir, 'whatsapp_qr.png');
 
 app.get('/health', (req, res) => {
   res.json({
     status: '✅ PETBIO Bot activo',
     supabase: !!supabaseKey,
     mqtt: mqttCloud?.connected || false,
-    whatsapp: whatsappClient?.initialized ? "✅ Conectado" : "⏳ Esperando conexión"
+    whatsapp: whatsappClient?.info ? '✅ Conectado' : '⏳ Esperando conexión'
   });
 });
 
@@ -337,31 +286,15 @@ app.get('/qr', (req, res) => {
   else res.status(404).send('❌ QR aún no generado');
 });
 
-app.listen(PORT, () => console.log(`🌐 Healthcheck activo en puerto ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🌐 Healthcheck activo en puerto ${PORT}`);
+});
 
 // ==========================================================
-// 📲 EVENTOS DEL CLIENTE WHATSAPP
+// EVENTOS DE MENSAJES (ejemplo de integración)
 // ==========================================================
-if (whatsappClient) {
-  whatsappClient.on('qr', async qr => {
-    console.log('📲 Escanea este código QR para vincular tu número:');
-    qrcode.generate(qr, { small: true });
-    await QRCode.toFile(qrPath, qr, { width: 300 });
-  });
-
-  whatsappClient.on('ready', () =>
-    console.log('✅ Cliente WhatsApp listo y conectado!')
-  );
-
-  whatsappClient.on('disconnected', async reason => {
-    console.warn('⚠️ Cliente desconectado:', reason);
-    setTimeout(() => whatsappClient.initialize(), 5000);
-  });
-}
-
-// ==========================================================
-// 💬 LÓGICA DE INTERACCIÓN PRINCIPAL
-// ==========================================================
+// Importa aquí tus módulos de interacción (ya que el cliente está inicializado asíncronamente,
+// los listeners se registran arriba dentro del IIFE cuando corresponda)
 const saludoDelUsuario = require('./interaccion_del_bot/saludo_del_usuario');
 const menuInicioModule = require('./interaccion_del_bot/menu_inicio');
 const { iniciarRegistroMascota } = require('./interaccion_del_bot/registro_mascotas_bot');
@@ -374,7 +307,9 @@ const { procesarSuscripcion } = require('./interaccion_del_bot/tarifas_menu');
 const CMD_MENU = ['menu', 'inicio', 'volver', 'home'];
 const CMD_CANCEL = ['cancelar', 'salir', 'stop', 'terminar', 'abortar'];
 
-if (whatsappClient) {
+function registerMessageHandler() {
+  if (!whatsappClient) return;
+
   whatsappClient.on('message', async msg => {
     try {
       const userMsg = (msg.body || '').trim().toLowerCase();
@@ -436,23 +371,16 @@ if (whatsappClient) {
   });
 }
 
-// ==========================================================
-// 🧠 GESTIÓN DE MEMORIA AUTOMÁTICA
-// ==========================================================
-setInterval(() => {
-  const usedMB = process.memoryUsage().rss / 1024 / 1024;
-  console.log(`🧠 Memoria usada: ${usedMB.toFixed(2)} MB`);
-  if (usedMB > 400) {
-    console.warn('🚨 Memoria alta, reinicializando cliente para evitar crash...');
-    try {
-      whatsappClient?.destroy();
-      setTimeout(() => whatsappClient?.initialize(), 8000);
-    } catch (_) {}
+// Cuando el cliente esté listo, registra el handler (si ya está listo, lo hace igual)
+const waitForClientReady = setInterval(() => {
+  if (whatsappClient && whatsappClient.info) {
+    registerMessageHandler();
+    clearInterval(waitForClientReady);
   }
-}, 15000);
+}, 1000);
 
 // ==========================================================
-// ⚠️ MANEJO GLOBAL DE ERRORES INESPERADOS
+// ⚠️ Manejo global de errores
 // ==========================================================
 process.on('uncaughtException', (err) => {
   console.error('💥 Uncaught Exception:', err);
@@ -462,14 +390,3 @@ process.on('unhandledRejection', (reason) => {
   console.error('💥 Unhandled Rejection:', reason);
   setTimeout(() => process.exit(1), 2000);
 });
-
-// ==========================================================
-// 🚀 INICIALIZACIÓN FINAL
-// ==========================================================
-if (whatsappClient) {
-  whatsappClient.initialize();
-  console.log('🚀 PETBIO WhatsApp Bot inicializado con sesión persistente.');
-} else {
-  console.warn('⚠️ WhatsApp no se inicializó (Chromium ausente o fallo en Puppeteer).');
-  console.warn('👉 Revisa que el build de Render ejecute correctamente el script "postinstall": "puppeteer install"');
-}
