@@ -139,7 +139,7 @@ const qrPath = path.join(sessionDir, 'whatsapp_qr.png');
 console.log(`📁 Sesiones WhatsApp temporales en: ${sessionDir}`);
 
 // ==========================================================
-// 🧩 DETECCIÓN DE CHROME EN RENDER
+// 🧩 DETECCIÓN DE CHROME EN RENDER (usando fixPuppeteer.js)
 // ==========================================================
 let chromePath;
 try {
@@ -147,7 +147,7 @@ try {
   console.log(`🔍 Chrome detectado en: ${chromePath}`);
 } catch (err) {
   console.error('❌ Chrome no encontrado automáticamente:', err.message);
-  chromePath = undefined;
+  chromePath = '/opt/render/.cache/puppeteer/chrome/linux-*/chrome-linux64/chrome';
 }
 
 // ==========================================================
@@ -215,9 +215,9 @@ let whatsappClient = null;
           '--disable-gpu',
           '--disable-dev-shm-usage',
           '--disable-software-rasterizer',
-          '--single-process',
-        ],
-      },
+          '--single-process'
+        ]
+      }
     });
 
     whatsappClient.on('qr', async (qr) => {
@@ -344,7 +344,6 @@ function registerMessageHandler() {
       }
 
       await saveUserSession(msg.from, session);
-
     } catch (err) {
       console.error('⚠️ Error procesando mensaje:', err);
       try { await msg.reply('⚠️ Ocurrió un error. Escribe *menu* para reiniciar.'); } catch (_) {}
@@ -366,6 +365,7 @@ process.on('uncaughtException', (err) => {
   console.error('💥 Uncaught Exception:', err);
   setTimeout(() => process.exit(1), 2000);
 });
+
 process.on('unhandledRejection', (reason) => {
   console.error('💥 Unhandled Rejection:', reason);
   setTimeout(() => process.exit(1), 2000);
