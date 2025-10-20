@@ -107,7 +107,7 @@ const getSession = async (userId) => {
   }
   return {};
 };
-
+/*
 const saveUserSession = async (userId, session) => {
   try {
     await supabase.from('sessions').upsert({
@@ -127,6 +127,45 @@ const deleteSession = async (userId) => {
     console.error('⚠️ Error eliminando sesión:', err.message);
   }
 };
+*/
+// Guarda o actualiza la sesión del bot de WhatsApp en Supabase
+const saveUserSession = async (sessionId, sessionData) => {
+  try {
+    const payload = {
+      session_id: sessionId,
+      data: sessionData,        // ya es JSON o Buffer serializado
+      updated_at: new Date()
+    };
+
+    const { error } = await supabase
+      .from('whatsapp_sessions')
+      .upsert(payload, { onConflict: 'session_id' });
+
+    if (error) throw error;
+
+    console.log(`💾 Sesión ${sessionId} guardada correctamente.`);
+  } catch (err) {
+    console.error('⚠️ Error guardando sesión:', err.message);
+  }
+};
+
+
+// Elimina una sesión específica por su session_id
+const deleteSession = async (sessionId) => {
+  try {
+    const { error } = await supabase
+      .from('whatsapp_sessions')
+      .delete()
+      .eq('session_id', sessionId);
+
+    if (error) throw error;
+
+    console.log(`🗑️ Sesión ${sessionId} eliminada correctamente.`);
+  } catch (err) {
+    console.error('⚠️ Error eliminando sesión:', err.message);
+  }
+};
+
 
 // ==========================================================
 // 📁 SESIÓN LOCAL (solo para almacenar QR temporalmente)
