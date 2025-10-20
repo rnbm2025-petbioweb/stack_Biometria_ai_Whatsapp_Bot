@@ -189,20 +189,33 @@ try {
   chromePath = undefined;
 }
 */
-
 let chromePath;
 try {
-  // Forzar ruta válida en Render
-  chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/opt/render/.cache/puppeteer/chrome/linux-141.0.7390.78/chrome-linux64/chrome';
+  chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath();
   console.log(`🔍 Chrome detectado en: ${chromePath}`);
-  if (!fs.existsSync(chromePath)) {
-    console.warn('⚠️ Chrome no encontrado en ruta forzada, usando puppeteer.executablePath()');
-    chromePath = puppeteer.executablePath();
-  }
 } catch (err) {
   console.error('❌ Chrome no encontrado automáticamente:', err.message);
   chromePath = undefined;
 }
+
+
+
+/*
+let chromePath;
+try {
+  // Forzar ruta válida en Render
+//  chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/opt/render/.cache/puppeteer/chrome/linux-141.0.7390.78/chrome-linux64/chrome';
+  chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath();
+  
+  console.log(`🔍 Chrome detectado en: ${chromePath}`);
+/* if (!fs.existsSync(chromePath)) {
+    console.warn('⚠️ Chrome no encontrado en ruta forzada, usando puppeteer.executablePath()');
+    chromePath = puppeteer.executablePath();
+  }  */
+} catch (err) {
+  console.error('❌ Chrome no encontrado automáticamente:', err.message);
+  chromePath = undefined;
+}*/
 
 // ==========================================================
 // 🔁 Helpers para guardar / cargar sesión del BOT en Supabase
