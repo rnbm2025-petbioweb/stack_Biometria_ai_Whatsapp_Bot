@@ -1,4 +1,3 @@
-
 // ==========================================================
 // 🤖 PETBIO WhatsApp Bot + Supabase + MQTT LavinMQ
 // Versión Render-ready con sesión persistente (Supabase)
@@ -8,7 +7,7 @@ require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
 const express = require('express');
-const { Client } = require('whatsapp-web.js'); // sin LocalAuth (usaremos session:)
+const { Client } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
 const { createClient } = require('@supabase/supabase-js');
@@ -20,10 +19,12 @@ const puppeteer = require('puppeteer');
 // ==========================================================
 const supabaseUrl = process.env.SUPABASE_URL || 'https://jbsxvonnrahhfffeacdy.supabase.co';
 const supabaseKey = process.env.SUPABASE_KEY;
+
 if (!supabaseKey) {
   console.error("❌ ERROR: No se encontró SUPABASE_KEY en .env");
   process.exit(1);
 }
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 console.log("🔑 Supabase inicializado correctamente.");
 
@@ -43,36 +44,22 @@ const initMQTT = () => {
     console.warn('⚠️ MQTT no configurado: faltan credenciales.');
     return;
   }
+
   try {
-  /*  const mqttOptions = {
+    const mqttOptions = {
       username: MQTT_USER,
       password: MQTT_PASS,
-      port: MQTT_PORT,
+      clientId: 'petbio_bot_' + Math.random().toString(16).slice(2),
       protocol: 'mqtts',
       connectTimeout: 5000,
       keepalive: 60,
       reconnectPeriod: 10000
     };
 
-    console.log(`📡 Conectando a LavinMQ (${MQTT_HOST}:${MQTT_PORT})...`);
-    mqttCloud = mqtt.connect(MQTT_HOST, mqttOptions);  */
+    const mqttUrl = `mqtts://${MQTT_HOST}:${MQTT_PORT}`;
+    console.log(`📡 Conectando a LavinMQ (${mqttUrl})...`);
 
-    const mqttOptions = {
-  username: MQTT_USER,
-  password: MQTT_PASS,
-  clientId: 'petbio_bot_' + Math.random().toString(16).slice(2),
-  protocol: 'mqtts',
-  connectTimeout: 5000,
-  keepalive: 60,
-  reconnectPeriod: 10000
-};
-
-// Usa URL completa en lugar del host
-const mqttUrl = `mqtts://${MQTT_HOST}:${MQTT_PORT}`;
-
-console.log(`📡 Conectando a LavinMQ (${mqttUrl})...`);
-mqttCloud = mqtt.connect(mqttUrl, mqttOptions);
-    
+    mqttCloud = mqtt.connect(mqttUrl, mqttOptions);
 
     mqttCloud.on('connect', () => {
       console.log(`✅ MQTT conectado y suscrito a ${MQTT_TOPIC}`);
@@ -101,7 +88,7 @@ mqttCloud = mqtt.connect(mqttUrl, mqttOptions);
 initMQTT();
 
 // ==========================================================
-// 🧠 FUNCIONES SUPABASE (sessions de usuarios - UI)
+// 🧠 FUNCIONES SUPABASE (manejo de sesiones de usuarios)
 // ==========================================================
 const SESSION_TTL = 1000 * 60 * 60 * 12; // 12 horas
 
@@ -111,11 +98,9 @@ const getSession = async (userId) => {
       .from('sessions')
       .select('*')
       .eq('user_id', userId)
-      .single();
-    if (error) {
-      // no existe -> ok
-      return {};
-    }
+      .maybeSingle();
+
+    if (error) return {};
     if (data && Date.now() - new Date(data.last_active).getTime() < SESSION_TTL) {
       return JSON.parse(data.data);
     }
@@ -124,7 +109,7 @@ const getSession = async (userId) => {
   }
   return {};
 };
-/*
+
 const saveUserSession = async (userId, session) => {
   try {
     await supabase.from('sessions').upsert({
@@ -144,48 +129,9 @@ const deleteSession = async (userId) => {
     console.error('⚠️ Error eliminando sesión:', err.message);
   }
 };
-*/
-// Guarda o actualiza la sesión del bot de WhatsApp en Supabase
-const saveUserSession = async (sessionId, sessionData) => {
-  try {
-    const payload = {
-      session_id: sessionId,
-      data: sessionData,        // ya es JSON o Buffer serializado
-      updated_at: new Date()
-    };
-
-    const { error } = await supabase
-      .from('whatsapp_sessions')
-      .upsert(payload, { onConflict: 'session_id' });
-
-    if (error) throw error;
-
-    console.log(`💾 Sesión ${sessionId} guardada correctamente.`);
-  } catch (err) {
-    console.error('⚠️ Error guardando sesión:', err.message);
-  }
-};
-
-
-// Elimina una sesión específica por su session_id
-const deleteSession = async (sessionId) => {
-  try {
-    const { error } = await supabase
-      .from('whatsapp_sessions')
-      .delete()
-      .eq('session_id', sessionId);
-
-    if (error) throw error;
-
-    console.log(`🗑️ Sesión ${sessionId} eliminada correctamente.`);
-  } catch (err) {
-    console.error('⚠️ Error eliminando sesión:', err.message);
-  }
-};
-
 
 // ==========================================================
-// 📁 SESIÓN LOCAL (solo para almacenar QR temporalmente)
+// 📁 SESIÓN LOCAL (QR temporal)
 // ==========================================================
 const sessionDir = '/tmp/session';
 if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
@@ -195,8 +141,6 @@ console.log(`📁 Sesiones WhatsApp temporales en: ${sessionDir}`);
 // ==========================================================
 // 🧩 DETECCIÓN DE CHROME EN RENDER
 // ==========================================================
-
-/*
 let chromePath;
 try {
   chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath();
@@ -205,38 +149,9 @@ try {
   console.error('❌ Chrome no encontrado automáticamente:', err.message);
   chromePath = undefined;
 }
-*/
-let chromePath;
-try {
-  chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath();
-  console.log(`🔍 Chrome detectado en: ${chromePath}`);
-} catch (err) {
-  console.error('❌ Chrome no encontrado automáticamente:', err.message);
-  chromePath = undefined;
-}
-
-
-
-/*
-let chromePath;
-try {
-  // Forzar ruta válida en Render
-//  chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/opt/render/.cache/puppeteer/chrome/linux-141.0.7390.78/chrome-linux64/chrome';
-  chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath();
-  
-  console.log(`🔍 Chrome detectado en: ${chromePath}`);
-/* if (!fs.existsSync(chromePath)) {
-    console.warn('⚠️ Chrome no encontrado en ruta forzada, usando puppeteer.executablePath()');
-    chromePath = puppeteer.executablePath();
-  }  */
-} catch (err) {
-  console.error('❌ Chrome no encontrado automáticamente:', err.message);
-  chromePath = undefined;
-}*/
 
 // ==========================================================
-// 🔁 Helpers para guardar / cargar sesión del BOT en Supabase
-// (tabla: whatsapp_sessions with columns session_id TEXT PRIMARY KEY, data JSONB, fecha_registro TIMESTAMP, updated_at TIMESTAMP)
+// 🔁 SESIÓN DEL BOT EN SUPABASE
 // ==========================================================
 const BOT_SESSION_ID = process.env.BOT_SESSION_ID || 'test_session';
 
@@ -248,25 +163,10 @@ async function cargarSessionDelBot(sessionId = BOT_SESSION_ID) {
       .eq('session_id', sessionId)
       .maybeSingle();
 
-    if (error) {
-      console.warn('⚠️ cargarSessionDelBot error:', error.message || error);
-      return null;
-    }
+    if (error) return null;
     if (!data) return null;
-
-    // data.data puede ser JSON (jsonb) o texto; maneja ambos
     const raw = data.data;
-    if (!raw) return null;
-    if (typeof raw === 'string') {
-      try {
-        return JSON.parse(raw);
-      } catch (e) {
-        console.warn('⚠️ cargarSessionDelBot: JSON.parse falló, retornando raw string');
-        return raw;
-      }
-    }
-    // ya es objeto (jsonb)
-    return raw;
+    return typeof raw === 'string' ? JSON.parse(raw) : raw;
   } catch (err) {
     console.error('⚠️ Error cargando sesión del bot:', err.message);
     return null;
@@ -284,12 +184,12 @@ async function guardarSessionDelBot(sessionObj, sessionId = BOT_SESSION_ID) {
     });
     console.log('💾 Sesión del bot guardada en Supabase.');
   } catch (err) {
-    console.error('⚠️ Error guardando sesión del bot en Supabase:', err.message);
+    console.error('⚠️ Error guardando sesión del bot:', err.message);
   }
 }
 
 // ==========================================================
-// 🤖 CLIENTE WHATSAPP (Sesión persistente en Supabase)
+// 🤖 CLIENTE WHATSAPP
 // ==========================================================
 let whatsappClient = null;
 
@@ -302,7 +202,7 @@ let whatsappClient = null;
   try {
     console.log('🔁 Intentando restaurar sesión del bot desde Supabase...');
     const restoredSession = await cargarSessionDelBot(BOT_SESSION_ID);
-    console.log(restoredSession ? '✅ Sesión restaurada desde Supabase' : '⚠️ No se encontró sesión previa');
+    console.log(restoredSession ? '✅ Sesión restaurada' : '⚠️ No se encontró sesión previa');
 
     whatsappClient = new Client({
       session: restoredSession || undefined,
@@ -320,19 +220,17 @@ let whatsappClient = null;
       },
     });
 
-    // QR -> si no hay sesión válida este evento aparecerá
     whatsappClient.on('qr', async (qr) => {
-      console.log('📲 QR generado (escanealo una vez):');
+      console.log('📲 Escanea este QR:');
       qrcode.generate(qr, { small: true });
       try {
         await QRCode.toFile(qrPath, qr, { width: 300 });
       } catch (_) {}
     });
 
-    // Al autenticarse: guardar sesión en Supabase
     whatsappClient.on('authenticated', async (session) => {
-      console.log('🔐 Autenticado: guardando sesión en Supabase...');
-      await guardarSessionDelBot(session, BOT_SESSION_ID);
+      console.log('🔐 Autenticado. Guardando sesión...');
+      await guardarSessionDelBot(session);
     });
 
     whatsappClient.on('ready', () => {
@@ -341,13 +239,11 @@ let whatsappClient = null;
 
     whatsappClient.on('disconnected', (reason) => {
       console.warn('⚠️ Cliente desconectado:', reason);
-      // eliminar sesión en Supabase para forzar nuevo flujo si es un cierre no esperado (opcional)
-      // await supabase.from('whatsapp_sessions').delete().eq('session_id', BOT_SESSION_ID);
       setTimeout(() => whatsappClient?.initialize(), 8000);
     });
 
     await whatsappClient.initialize();
-    console.log('🚀 WhatsApp client initialized.');
+    console.log('🚀 WhatsApp client inicializado.');
   } catch (err) {
     console.error('❌ Error inicializando WhatsApp client:', err?.message || err);
   }
@@ -378,10 +274,8 @@ app.listen(PORT, () => {
 });
 
 // ==========================================================
-// EVENTOS DE MENSAJES (ejemplo de integración)
+// ⚙️ REGISTRO DE MENSAJES
 // ==========================================================
-// Importa aquí tus módulos de interacción (ya que el cliente está inicializado asíncronamente,
-// los listeners se registran arriba dentro del IIFE cuando corresponda)
 const saludoDelUsuario = require('./interaccion_del_bot/saludo_del_usuario');
 const menuInicioModule = require('./interaccion_del_bot/menu_inicio');
 const { iniciarRegistroMascota } = require('./interaccion_del_bot/registro_mascotas_bot');
@@ -406,7 +300,7 @@ function registerMessageHandler() {
 
       if (CMD_CANCEL.includes(userMsg)) {
         await deleteSession(msg.from);
-        await msg.reply('🛑 Registro cancelado. Escribe *menu* para comenzar de nuevo.');
+        await msg.reply('🛑 Registro cancelado. Escribe *menu* para comenzar.');
         return;
       }
 
@@ -458,7 +352,6 @@ function registerMessageHandler() {
   });
 }
 
-// Cuando el cliente esté listo, registra el handler (si ya está listo, lo hace igual)
 const waitForClientReady = setInterval(() => {
   if (whatsappClient && whatsappClient.info) {
     registerMessageHandler();
@@ -467,7 +360,7 @@ const waitForClientReady = setInterval(() => {
 }, 1000);
 
 // ==========================================================
-// ⚠️ Manejo global de errores
+// ⚠️ ERRORES GLOBALES
 // ==========================================================
 process.on('uncaughtException', (err) => {
   console.error('💥 Uncaught Exception:', err);
