@@ -44,7 +44,7 @@ const initMQTT = () => {
     return;
   }
   try {
-    const mqttOptions = {
+  /*  const mqttOptions = {
       username: MQTT_USER,
       password: MQTT_PASS,
       port: MQTT_PORT,
@@ -55,7 +55,24 @@ const initMQTT = () => {
     };
 
     console.log(`📡 Conectando a LavinMQ (${MQTT_HOST}:${MQTT_PORT})...`);
-    mqttCloud = mqtt.connect(MQTT_HOST, mqttOptions);
+    mqttCloud = mqtt.connect(MQTT_HOST, mqttOptions);  */
+
+    const mqttOptions = {
+  username: MQTT_USER,
+  password: MQTT_PASS,
+  clientId: 'petbio_bot_' + Math.random().toString(16).slice(2),
+  protocol: 'mqtts',
+  connectTimeout: 5000,
+  keepalive: 60,
+  reconnectPeriod: 10000
+};
+
+// Usa URL completa en lugar del host
+const mqttUrl = `mqtts://${MQTT_HOST}:${MQTT_PORT}`;
+
+console.log(`📡 Conectando a LavinMQ (${mqttUrl})...`);
+mqttCloud = mqtt.connect(mqttUrl, mqttOptions);
+    
 
     mqttCloud.on('connect', () => {
       console.log(`✅ MQTT conectado y suscrito a ${MQTT_TOPIC}`);
