@@ -35,7 +35,7 @@
     "cacheDirectory": "/opt/render/.cache/puppeteer"
   },
   "engines": {
-    "node": "22.x"
+    "node": ">=20.x"
   },
   "keywords": [
     "whatsapp",
