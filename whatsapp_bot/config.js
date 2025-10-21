@@ -8,6 +8,7 @@ const { Pool } = require('pg');
 //   esto se deja definido mas abajo en la linea: 308 const { supabasePool } = require('./config');
 
 
+
 // ==========================================================
 // ✅ MYSQL — Conexión principal PETBIO
 // ==========================================================
