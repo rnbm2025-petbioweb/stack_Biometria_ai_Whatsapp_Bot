@@ -4,7 +4,7 @@
   "description": "Bot de WhatsApp integrado con PETBIO y Biometría AI",
   "main": "index.js",
   "scripts": {
-    "start": "node fixPuppeteer.js && node index.js",
+    "start": "node -e \"import('fs').then(()=>{try{require('./fixPuppeteer.js')}catch(e){console.log('⚠️ fixPuppeteer.js no encontrado, continuando...')}})\" && node index.js",
     "build": "npx puppeteer install chrome",
     "postinstall": "npx puppeteer install chrome",
     "test": "echo \"⚠️ No hay tests definidos\" && exit 0"
