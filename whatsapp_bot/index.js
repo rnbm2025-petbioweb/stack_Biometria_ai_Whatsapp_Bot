@@ -133,10 +133,53 @@ const deleteSession = async (userId) => {
 // ==========================================================
 // 📁 SESIÓN LOCAL (QR temporal)
 // ==========================================================
+
+/*
 const sessionDir = '/tmp/session';
 if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 const qrPath = path.join(sessionDir, 'whatsapp_qr.png');
 console.log(`📁 Sesiones WhatsApp temporales en: ${sessionDir}`);
+*/
+/*
+// ==========================================================
+// 📁 SESIÓN LOCAL (QR temporal compatible con Termux)
+// ==========================================================
+const tmpBase = path.resolve(__dirname, '../tmp');
+const sessionDir = path.join(tmpBase, 'session');
+
+try {
+  fs.mkdirSync(sessionDir, { recursive: true });
+  process.env.TMPDIR = sessionDir; // <- importante para puppeteer en Termux
+  console.log(`📁 Carpeta de sesión creada: ${sessionDir}`);
+} catch (err) {
+  console.error('❌ Error creando carpeta temporal:', err.message);
+}
+
+const qrPath = path.join(sessionDir, 'whatsapp_qr.png');
+console.log(`📁 Sesiones WhatsApp temporales en: ${sessionDir}`);
+*/
+
+
+// ==========================================>
+// 📁 SESIÓN LOCAL (QR temporal compatible con Termux / Render)
+// ==========================================>
+//const path = require('path');
+//const fs = require('fs');
+
+const tmpBase = path.resolve(__dirname, '../tmp');
+const sessionDir = path.join(tmpBase, 'session');
+
+try {
+  fs.mkdirSync(sessionDir, { recursive: true });
+  process.env.TMPDIR = sessionDir; // <- importante para Puppeteer
+  console.log(`📁 Carpeta de sesión creada: ${sessionDir}`);
+} catch (err) {
+  console.error('❌ Error creando carpeta temporal:', err);
+}
+
+const qrPath = path.join(sessionDir, 'whatsapp-qr.png');
+console.log(`📁 Sesiones WhatsApp temporales en: ${sessionDir}`);
+
 
 // ==========================================================
 // 🧩 DETECCIÓN DE CHROME EN RENDER (usando fixPuppeteer.js)

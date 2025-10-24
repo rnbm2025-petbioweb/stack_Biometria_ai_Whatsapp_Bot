@@ -1,0 +1,162 @@
+<?php
+// ✅ ¡Primero lo primero! — Inicia la sesión ANTES de cualquier salida HTML
+session_start();
+$usuarioLogeado = $_SESSION['nombre'] ?? null;
+$apellidos = $_SESSION['apellidos'] ?? null;
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registro de Usuarios PETBIO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            petbioazul: '#27445D',        // azul institucional oscuro
+            petbioazulclaro: '#72BCB3',   // azul claro de la guía
+            petbioverde: '#497D74',
+            petbiofondo: '#EFE9D5'
+          },
+          fontFamily: {
+            bahn: ['Bahnschrift', 'Segoe UI', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-petbiofondo text-petbioazul font-bahn">
+  <header class="bg-white shadow-md p-4 flex justify-between items-center">
+    <div>
+      <h1 class="text-2xl font-bold text-petbioazul">🐾 PETBIO</h1>
+      <p class="text-sm text-petbioverde">Registro de Usuarios de Mascotas</p>
+    </div>
+    <div class="relative inline-block text-left">
+  <button onclick="toggleMenu()" class="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-petbioazulclaro text-white font-bold hover:bg-petbioverde">
+    ☰ Menú
+  </button>
+  <div id="dropdownMenu" class="hidden absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+    <a href="https://siac2025.com/" class="block px-4 py-2 text-sm text-petbioazul hover:bg-gray-100">🏠 Inicio</a>
+    <a href="https://registro.siac2025.com/" class="block px-4 py-2 text-sm text-petbioazul hover:bg-gray-100">🔗 PETBIO – SIAC</a>
+    <a href="https://registro.siac2025.com/2025/06/28/1041/" class="block px-4 py-2 text-sm text-petbioazul hover:bg-gray-100">🛡️ Política de Privacidad</a>
+    <a href="https://registro.siac2025.com/2025/06/28/1039/" class="block px-4 py-2 text-sm text-petbioazul hover:bg-gray-100">⚖️ Términos y Condiciones</a>
+    <a href="https://petbio11rubm2025.blogspot.com/" class="block px-4 py-2 text-sm text-petbioazul hover:bg-gray-100">📖 Blog PETBIO</a>
+  </div>
+</div>
+
+<script>
+  function toggleMenu() {
+    const menu = document.getElementById('dropdownMenu');
+    menu.classList.toggle('hidden');
+  }
+</script>
+</div>
+  </header>
+
+  <!-- GUÍAS -->
+  <section class="max-w-3xl mx-auto mt-10">
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">📋 Guías Paso a Paso</h2>
+      <button onclick="toggleAccordion('paso1')" class="w-full bg-petbioazulclaro hover:bg-petbioverde text-white font-bold py-2 px-4 rounded">📸 Captura Biométrica</button>
+      <div id="paso1" class="hidden mt-4 text-sm text-petbioazul">
+        <ul class="list-disc list-inside space-y-2">
+          <li>Mascota tranquila o dormida</li>
+          <li>Luz blanca, fondo claro</li>
+          <li>3 fotos de la trufa (frontal, 45°, lateral)</li>
+          <li>4 fotos del rostro (perfiles, arriba y abajo)</li>
+          <li>Imágenes nítidas y sin sombras</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <button onclick="toggleAccordion('paso2')" class="w-full bg-petbioverde hover:bg-petbioazul text-white font-bold py-2 px-4 rounded">🧾 Requisitos del Registro</button>
+      <div id="paso2" class="hidden mt-4 text-sm text-petbioazul">
+        <ul class="list-disc list-inside space-y-2">
+          <li>Nombre y apellidos</li>
+          <li>Correo electrónico</li>
+          <li>Contraseña segura</li>
+          <li>Documento válido</li>
+          <li>Aceptar términos y condiciones</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- FORMULARIO -->
+  <main class="max-w-lg mx-auto mt-10 bg-white rounded-xl shadow-lg p-6">
+    <h2 class="text-2xl font-semibold mb-6 text-center text-petbioazul">Registro de Usuarios PETBIO RUBM</h2>
+    <form id="registerForm" action="https://petbio.siac2025.com/registropetbio.php" method="POST" class="space-y-4">
+      <div>
+        <label for="username" class="block font-medium">Nombres:</label>
+        <input type="text" id="username" name="username" required class="w-full rounded border border-gray-300 px-4 py-2">
+      </div>
+      <div>
+        <label for="lastname" class="block font-medium">Apellidos:</label>
+        <input type="text" id="lastname" name="lastname" required class="w-full rounded border border-gray-300 px-4 py-2">
+      </div>
+      <div>
+        <label for="email" class="block font-medium">Correo Electrónico:</label>
+        <input type="email" id="email" name="email" required class="w-full rounded border border-gray-300 px-4 py-2">
+      </div>
+      <div>
+        <label for="password" class="block font-medium">Contraseña:</label>
+        <input type="password" id="password" name="password" required class="w-full rounded border border-gray-300 px-4 py-2">
+      </div>
+      <div>
+        <label for="confirmPassword" class="block font-medium">Confirmar Contraseña:</label>
+        <input type="password" id="confirmPassword" name="confirmPassword" required class="w-full rounded border border-gray-300 px-4 py-2">
+      </div>
+      <div>
+        <label for="Documento_identidad" class="block font-medium">Documento de Identidad:</label>
+        <input type="number" id="Documento_identidad" name="Documento_identidad" required class="w-full rounded border border-gray-300 px-4 py-2">
+      </div>
+      <div>
+        <label for="tipo_Persona" class="block font-medium">Tipo de Persona:</label>
+        <select id="tipo_Persona" name="tipo_Persona" required class="w-full rounded border border-gray-300 px-4 py-2">
+          <option value="1">Natural</option>
+          <option value="0">Jurídica</option>
+        </select>
+      </div>
+      <div>
+        <label for="tiene_mascotas" class="block font-medium">¿Tiene Mascotas?</label>
+        <select id="tiene_mascotas" name="tiene_mascotas" required class="w-full rounded border border-gray-300 px-4 py-2">
+          <option value="1">Sí</option>
+          <option value="0">No</option>
+        </select>
+      </div>
+      <div class="flex items-center">
+        <input type="checkbox" id="terminos" name="terminos" required class="mr-2">
+        <label for="terminos" class="text-sm">Acepto los <a href="https://site-mscdp54gx.godaddysites.com/t%C3%A9rminos-y-condiciones" class="text-petbioazul underline" target="_blank">términos y condiciones</a>.</label>
+      </div>
+    <button type="button" onclick="window.location.href='https://petbio.siac2025.com/registropetbio.php'" class="...">Ir a Registro</button>
+
+      <button type="button" onclick="window.location.href='/formularios/loginHuellitas27.php'" class="w-full mt-2 bg-gray-600 text-white font-semibold py-2 px-4 rounded hover:bg-gray-700">Ir a Login</button>
+    </form>
+  </main>
+
+  <script>
+    function toggleAccordion(id) {
+      const el = document.getElementById(id);
+      el.classList.toggle('hidden');
+    }
+
+    function toggleMenu() {
+      const menu = document.getElementById('dropdownMenu');
+      menu.classList.toggle('hidden');
+    }
+  </script>
+
+  <footer class="text-center text-sm text-gray-500 mt-10 py-4">
+    © 2025 PETBIO | Biometría Animal en Colombia 🇨🇴
+  </footer>
+  <script>
+  window.location.href = "https://petbio.siac2025.com/registropetbio.php";
+</script>
+
+</body>
+</html>
