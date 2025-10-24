@@ -4,12 +4,12 @@
   "description": "Bot de WhatsApp integrado con PETBIO y Biometría AI",
   "main": "index.js",
   "scripts": {
-    "start": "node -e \"import('fs').then(()=>{try{require('./fixPuppeteer.js')}catch(e){console.log('⚠️ fixPuppeteer.js no encontrado, continuando...')}})\" && node index.js",
-
-    "build": "npx puppeteer install chrome",
-    "postinstall": "npx puppeteer install chrome",
-    "test": "echo \"⚠️ No hay tests definidos\" && exit 0"
+  "start": "node -e \"try{require('./fixPuppeteer.js')}catch(e){console.log('⚠️ fixPuppeteer.js no encontrado, continuando...')}\" && node index.js",
+  "build": "npx puppeteer install chrome",
+  "postinstall": "npx puppeteer install chrome",
+  "test": "echo \"⚠️ No hay tests definidos\" && exit 0"
   },
+
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",
     "bcryptjs": "^3.0.2",
