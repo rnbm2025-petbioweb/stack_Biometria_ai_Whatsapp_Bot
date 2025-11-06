@@ -43,6 +43,42 @@ if (mqttCloud) {
   });
 }
 
+//-----------6 de octubre  cambio para whatsapp_bot    dejamos de usar el bot_2, 1
+
+
+const whatsappClient = new Client({
+  puppeteer: {
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--single-process',
+      '--no-zygote'
+    ]
+  },
+  authStrategy: new LocalAuth()  // ✅ SIN userDataDir
+});
+
+
+/*
+const whatsappClient = new Client({
+  puppeteer: {
+    headless: true,
+    userDataDir: '/usr/src/app/session',  // ✅ Mover aquí
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage'
+      '--single-process',
+      '--no-zygote'
+    ]
+  },
+  authStrategy: new LocalAuth()
+});
+
+
+
 // ------------------ 🤖 Cliente WhatsApp ------------------
 const whatsappClient = new Client({
   puppeteer: {
@@ -57,7 +93,7 @@ const whatsappClient = new Client({
     userDataDir: '/usr/src/app/session'  // 📁 Carpeta persistente para Docker
   })
 });
-
+*/
 // ------------------ 🌐 Express Healthcheck y QR ------------------
 const app = express();
 const PORT = process.env.PORT || 3000;

@@ -69,7 +69,7 @@ mqttCloud.on('error', (err) => {
 // ✅ MQTT - Mosquitto Local DEV
 // ===============================
 const mqttLocalDev = mqtt.connect(
-  process.env.MQTT_LOCAL_DEV_BROKER || 'mqtt://127.0.0.1:1883',
+  process.env.MQTT_LOCAL_DEV_BROKER || 'mqtt://172.20.0.3:1883',
   {
     username: process.env.MQTT_LOCAL_DEV_USER || 'petbio_user_dev',
     password: process.env.MQTT_LOCAL_DEV_PASS || 'petbio2025_dev!',
@@ -84,7 +84,8 @@ mqttLocalDev.on('error', (err) => console.error('❌ Error Mosquitto DEV:', err.
 // ✅ MQTT - Mosquitto Local PROD
 // ===============================
 const mqttLocalProd = mqtt.connect(
-  process.env.MQTT_LOCAL_BROKER || 'mqtt://127.0.0.1:1883',
+  process.env.MQTT_LOCAL_BROKER || 'mqtt://172.20.0.3:1883',
+//mymosquitto.siac2025.com:8883',
   {
     username: process.env.MQTT_LOCAL_USER || 'petbio_user',
     password: process.env.MQTT_LOCAL_PASS || 'petbio2025!',
