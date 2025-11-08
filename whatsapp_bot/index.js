@@ -1,14 +1,24 @@
 // index.js - PETBIO WhatsApp Bot Integrado 🌐 (Render Cloud Ready + Conexión Estable)
 // ===========================================================================
-require('dotenv').config();
 
-const path = require('path');
-const fs = require('fs');
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
-const QRCode = require('qrcode');
-const express = require('express');
-const { createClient } = require('@supabase/supabase-js');
+import 'dotenv/config';
+import path from 'path';
+import fs from 'fs';
+import express from 'express';
+import qrcode from 'qrcode-terminal';
+import QRCode from 'qrcode';
+import { Client, LocalAuth } from 'whatsapp-web.js';
+import { createClient } from '@supabase/supabase-js';
+import { mqttCloud } from './config.js';
+import { getSession, saveSession, deleteSession } from './utils/supabase_session.js';
+import saludoDelUsuario from './interaccion_del_bot/saludo_del_usuario.js';
+import menuInicioModule from './interaccion_del_bot/menu_inicio.js';
+import { iniciarRegistroMascota } from './interaccion_del_bot/registro_mascotas_bot.js';
+import { iniciarRegistroUsuario } from './interaccion_del_bot/registro_usuario_bot.js';
+import { iniciarSuscripciones } from './interaccion_del_bot/suscripciones_cuidadores_bot.js';
+import historiaClinicaBot from './interaccion_del_bot/historia_clinica_bot.js';
+import crearCitaBot from './interaccion_del_bot/crear_cita_bot.js';
+import { procesarSuscripcion } from './interaccion_del_bot/tarifas_menu.js';
 
 // ------------------ 🌐 Configuración Supabase ------------------
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -17,12 +27,10 @@ if (!supabaseUrl || !supabaseKey) {
   console.error("❌ ERROR: Faltan variables SUPABASE_URL o SUPABASE_KEY. El bot no puede iniciar.");
   process.exit(1);
 }
-
 const supabase = createClient(supabaseUrl, supabaseKey);
 console.log("🔑 Supabase inicializado correctamente.");
 
 // ------------------ 📡 Configuración MQTT ------------------
-const { mqttCloud } = require('./config');
 if (mqttCloud) {
   mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
   mqttCloud.on('error', (err) => {
@@ -43,7 +51,7 @@ let chromePath = process.env.PUPPETEER_EXECUTABLE_PATH;
 
 if (!chromePath || !fs.existsSync(chromePath)) {
   try {
-    const puppeteer = require('puppeteer-core');
+    const puppeteer = await import('puppeteer-core');
     chromePath = puppeteer.executablePath();
     console.log(`✅ ChromePath detectado automáticamente: ${chromePath}`);
   } catch (err) {
@@ -52,7 +60,6 @@ if (!chromePath || !fs.existsSync(chromePath)) {
   }
 }
 console.log(`🧭 Chrome ejecutable en uso: ${chromePath}`);
-
 
 // ------------------ 🤖 Configuración del Cliente WhatsApp ------------------
 let whatsappClient;
@@ -75,7 +82,7 @@ const initWhatsApp = () => {
   // ------------------ 🌐 Express Healthcheck & QR ------------------
   const app = express();
   const PORT = process.env.PORT || 3000;
-  const qrPath = path.join(__dirname, 'tmp_whatsapp_qr.png');
+  const qrPath = path.join(path.resolve(), 'tmp_whatsapp_qr.png');
 
   app.get('/health', (req, res) => {
     res.json({
@@ -116,25 +123,15 @@ const initWhatsApp = () => {
   whatsappClient.on('auth_failure', msg => {
     console.error('❌ Fallo de autenticación:', msg);
     console.log('🧹 Eliminando sesión corrupta...');
-    const sessionPath = path.join(__dirname, '.wwebjs_auth');
+    const sessionPath = path.join(path.resolve(), '.wwebjs_auth');
     if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
     console.log('🔁 Reiniciando autenticación en 10s...');
     setTimeout(initWhatsApp, 10000);
   });
 
   // ------------------ 💬 Lógica de mensajes ------------------
-  const { getSession, saveSession, deleteSession } = require('./utils/supabase_session');
   const CMD_MENU = ['menu', 'inicio', 'volver', 'home'];
   const CMD_CANCEL = ['cancelar', 'salir', 'stop', 'terminar', 'abortar'];
-
-  const saludoDelUsuario = require('./interaccion_del_bot/saludo_del_usuario');
-  const menuInicioModule = require('./interaccion_del_bot/menu_inicio');
-  const { iniciarRegistroMascota } = require('./interaccion_del_bot/registro_mascotas_bot');
-  const { iniciarRegistroUsuario } = require('./interaccion_del_bot/registro_usuario_bot');
-  const { iniciarSuscripciones } = require('./interaccion_del_bot/suscripciones_cuidadores_bot');
-  const historiaClinicaBot = require('./interaccion_del_bot/historia_clinica_bot');
-  const crearCitaBot = require('./interaccion_del_bot/crear_cita_bot');
-  const { procesarSuscripcion } = require('./interaccion_del_bot/tarifas_menu');
 
   whatsappClient.on('message', async msg => {
     try {
