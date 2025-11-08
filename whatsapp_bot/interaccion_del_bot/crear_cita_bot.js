@@ -111,7 +111,7 @@ async function guardarCita(cita) {
 
 // ==========================
 // Procesar solicitud de cita
-export async function crearCitaBot(usuarioId) {
+async function procesarSolicitud(usuarioId) {
   if (!(await validarAcceso(usuarioId, 'cita'))) return;
 
   const mascotas = await obtenerMascotas(usuarioId);
@@ -125,9 +125,11 @@ export async function crearCitaBot(usuarioId) {
     `📅 Para crear una cita, selecciona primero una de tus mascotas.\n` +
       mascotas.map((m, idx) => `${idx + 1}. ${m.nombre} (${m.clase_mascota})`).join('\n')
   );
-
-  // Suscribirse a topic paso a paso si es necesario
 }
+
+// Exportar como objeto con el método procesarSolicitud
+export default { procesarSolicitud };
+
 
 // ==========================
 // Suscribirse al topic
