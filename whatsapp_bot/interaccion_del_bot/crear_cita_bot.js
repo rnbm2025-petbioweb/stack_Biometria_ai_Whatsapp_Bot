@@ -142,9 +142,10 @@ client.on('message', (topic, message) => {
   if (topic === topicSolicitud) {
     try {
       const payload = JSON.parse(message.toString());
-      crearCitaBot(payload.usuarioId);
+      procesarSolicitud(payload.usuarioId); // ✅ usar la función definida
     } catch (err) {
       console.error('❌ Error procesando payload:', err.message);
     }
   }
 });
+
