@@ -1,26 +1,23 @@
-// fix-puppeteer.js
-const fs = require("fs");
-const path = require("path");
+// fix-puppeteer.js – fuerza Puppeteer a usar la ruta correcta de Chrome
+const fs = require('fs');
+const path = require('path');
+const puppeteer = require('puppeteer');
 
-const cachePath = "/opt/render/.cache/puppeteer/chrome";
-const localChrome = "/usr/bin/google-chrome";
-
-try {
-  if (!fs.existsSync(cachePath)) {
-    fs.mkdirSync(cachePath, { recursive: true });
-  }
-
-  // Crear un enlace simbólico si existe Chrome en el sistema
-  if (fs.existsSync(localChrome)) {
-    const targetPath = path.join(cachePath, "chrome-linux64", "chrome");
-    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-    if (!fs.existsSync(targetPath)) {
-      fs.symlinkSync(localChrome, targetPath);
-      console.log("✅ Chrome vinculado correctamente para Puppeteer");
+(async () => {
+  try {
+    console.log("🧩 Instalando Chrome para Puppeteer...");
+    const browserFetcher = puppeteer.createBrowserFetcher();
+    const revisionInfo = await browserFetcher.download('1045629'); // revisión compatible con whatsapp-web.js
+    const chromePath = revisionInfo.executablePath;
+    const envFile = path.join(__dirname, '.env');
+    let envContent = fs.existsSync(envFile) ? fs.readFileSync(envFile, 'utf8') : '';
+    if (!envContent.includes('PUPPETEER_EXECUTABLE_PATH=')) {
+      envContent += `\nPUPPETEER_EXECUTABLE_PATH=${chromePath}\n`;
+      fs.writeFileSync(envFile, envContent);
     }
-  } else {
-    console.log("⚠️ Chrome no encontrado localmente, se usará el de Puppeteer");
+    console.log(`✅ Chrome descargado en: ${chromePath}`);
+  } catch (err) {
+    console.error("❌ Error instalando Puppeteer:", err.message);
+    process.exit(1);
   }
-} catch (err) {
-  console.error("❌ Error configurando Puppeteer:", err);
-}
+})();
