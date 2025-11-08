@@ -1,21 +1,36 @@
-// fix-puppeteer.js – fuerza Puppeteer a usar la ruta correcta de Chrome
+// fix-puppeteer.js – Fuerza Puppeteer a usar la ruta correcta de Chrome
 const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer');
 
 (async () => {
   try {
-    console.log("🧩 Instalando Chrome para Puppeteer...");
-    const browserFetcher = puppeteer.createBrowserFetcher();
-    const revisionInfo = await browserFetcher.download('1045629'); // revisión compatible con whatsapp-web.js
-    const chromePath = revisionInfo.executablePath;
-    const envFile = path.join(__dirname, '.env');
-    let envContent = fs.existsSync(envFile) ? fs.readFileSync(envFile, 'utf8') : '';
-    if (!envContent.includes('PUPPETEER_EXECUTABLE_PATH=')) {
-      envContent += `\nPUPPETEER_EXECUTABLE_PATH=${chromePath}\n`;
-      fs.writeFileSync(envFile, envContent);
+    console.log("🧩 Verificando Chrome para Puppeteer...");
+
+    const cacheDir = '/opt/render/.cache/puppeteer';
+    const revision = '1045629'; // revisión estable compatible con whatsapp-web.js
+
+    // Crear directorio cache si no existe
+    if (!fs.existsSync(cacheDir)) {
+      fs.mkdirSync(cacheDir, { recursive: true });
+      console.log("📁 Carpeta de caché Puppeteer creada.");
     }
-    console.log(`✅ Chrome descargado en: ${chromePath}`);
+
+    // Descargar versión específica de Chrome
+    const browserFetcher = puppeteer.createBrowserFetcher({ path: cacheDir });
+    const revisionInfo = await browserFetcher.download(revision);
+    const chromePath = revisionInfo.executablePath;
+
+    console.log(`✅ Chrome descargado o existente en: ${chromePath}`);
+
+    // Escribir la ruta en un archivo auxiliar (no en .env)
+    const runtimePath = path.join(__dirname, 'chrome-path.txt');
+    fs.writeFileSync(runtimePath, chromePath);
+
+    console.log(`💾 Ruta guardada en ${runtimePath}`);
+    console.log('⚙️ Si usas Render, define en tu panel la variable:');
+    console.log(`PUPPETEER_EXECUTABLE_PATH=${chromePath}`);
+
   } catch (err) {
     console.error("❌ Error instalando Puppeteer:", err.message);
     process.exit(1);
