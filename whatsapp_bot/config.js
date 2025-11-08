@@ -1,9 +1,11 @@
 // config.js - Configuración central de PETBIO Bot 🌐
-// ==================================================
-require('dotenv').config();
-const mysql = require('mysql2/promise');
-const mqtt = require('mqtt');
-const { Pool } = require('pg');
+import dotenv from 'dotenv';
+dotenv.config();
+
+import mysql from 'mysql2/promise';
+import mqtt from 'mqtt';
+import pkgPg from 'pg';
+const { Pool } = pkgPg;
 
 // ===============================
 // ✅ MYSQL
@@ -11,9 +13,8 @@ const { Pool } = require('pg');
 async function getMySQLConnection() {
   try {
     const connection = await mysql.createConnection({
-      host: process.env.MYSQL_HOST || '127.0.0.1', 
-// 'mysql_petbio_secure', 5 de octubre cambiamos de mysql_petbio_secure 3310 a usar 127.0.0.1 3306 
-      port: process.env.MYSQL_PORT ||'3306',
+      host: process.env.MYSQL_HOST || '127.0.0.1',
+      port: process.env.MYSQL_PORT || '3306',
       user: process.env.MYSQL_USER || 'root',
       password: process.env.MYSQL_PASSWORD || 'R00t_Segura_2025!',
       database: process.env.MYSQL_DATABASE || 'db__produccion_petbio_segura_2025',
@@ -27,22 +28,18 @@ async function getMySQLConnection() {
 }
 
 // ===============================
-// ✅ MQTT - CloudMQTT (Producción) — FIX AUTORIZACIÓN
+// ✅ MQTT - CloudMQTT
 // ===============================
-
-// 👉 IMPORTANTE: aquí el username debe ser **SOLO el nombre de usuario**, sin el vhost.
 const mqttCloudUrl = process.env.MQTT_CLOUD_BROKER || 'mqtts://duck-01.lmq.cloudamqp.com:8883';
-
 const mqttCloudOptions = {
-  username: process.env.MQTT_CLOUD_USER || 'xdagoqsj', // ✅ solo el username
+  username: process.env.MQTT_CLOUD_USER || 'xdagoqsj',
   password: process.env.MQTT_CLOUD_PASS || 'flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L',
   protocol: 'mqtts',
   reconnectPeriod: Number(process.env.MQTT_RECONNECT_MS) || 5000,
   connectTimeout: Number(process.env.MQTT_CONNECT_TIMEOUT_MS) || 30000,
-  rejectUnauthorized: false, // 🔓 evita problemas con certificados
-  clientId: (process.env.MQTT_CLIENT_ID || 'petbio_bot_') + Math.random().toString(16).substring(2, 8), // 👈 ID único
+  rejectUnauthorized: false,
+  clientId: (process.env.MQTT_CLIENT_ID || 'petbio_bot_') + Math.random().toString(16).substring(2, 8),
 };
-
 console.log('🔑 MQTT Cloud Config ->', {
   broker: mqttCloudUrl,
   user: mqttCloudOptions.username,
@@ -50,10 +47,8 @@ console.log('🔑 MQTT Cloud Config ->', {
   protocol: mqttCloudOptions.protocol,
   clientId: mqttCloudOptions.clientId,
 });
-
 const mqttCloud = mqtt.connect(mqttCloudUrl, mqttCloudOptions);
 
-// 🛠️ Eventos de conexión CloudMQTT
 mqttCloud.on('connect', () => console.log('✅ Conectado a CloudMQTT'));
 mqttCloud.on('reconnect', () => console.log('🔁 Reintentando conexión MQTT...'));
 mqttCloud.on('close', () => console.warn('⚠️ Conexión MQTT cerrada'));
@@ -76,7 +71,6 @@ const mqttLocalDev = mqtt.connect(
     reconnectPeriod: 5000,
   }
 );
-
 mqttLocalDev.on('connect', () => console.log('✅ Conectado a Mosquitto DEV'));
 mqttLocalDev.on('error', (err) => console.error('❌ Error Mosquitto DEV:', err.message));
 
@@ -85,14 +79,12 @@ mqttLocalDev.on('error', (err) => console.error('❌ Error Mosquitto DEV:', err.
 // ===============================
 const mqttLocalProd = mqtt.connect(
   process.env.MQTT_LOCAL_BROKER || 'mqtt://172.20.0.3:1883',
-//mymosquitto.siac2025.com:8883',
   {
     username: process.env.MQTT_LOCAL_USER || 'petbio_user',
     password: process.env.MQTT_LOCAL_PASS || 'petbio2025!',
     reconnectPeriod: 5000,
   }
 );
-
 mqttLocalProd.on('connect', () => console.log('✅ Conectado a Mosquitto PROD'));
 mqttLocalProd.on('error', (err) => console.error('❌ Error Mosquitto PROD:', err.message));
 
@@ -122,7 +114,7 @@ async function testSupabaseConnection() {
 // ===============================
 // ✅ EXPORTS
 // ===============================
-module.exports = {
+export {
   getMySQLConnection,
   mqttCloud,
   mqttLocalDev,
