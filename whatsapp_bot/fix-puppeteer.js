@@ -1,7 +1,7 @@
 // fix-puppeteer.js – Configuración moderna para Puppeteer en Render
 import fs from "fs";
 import path from "path";
-import { execSync } from "child_process";
+import puppeteer from "puppeteer";
 
 const envFile = path.join(process.cwd(), ".env");
 
@@ -9,18 +9,18 @@ const envFile = path.join(process.cwd(), ".env");
   try {
     console.log("🧩 Configurando Puppeteer en Render...");
 
-    // Verificamos ruta actual de Chrome
-    const chromePath =
-      process.env.PUPPETEER_EXECUTABLE_PATH ||
-      "/opt/render/.cache/puppeteer/chrome/linux-120.0.6099.109/chrome-linux64/chrome";
+    const defaultChromePath = "/opt/render/.cache/puppeteer/chrome/linux-142.0.7444.61/chrome-linux64/chrome";
+    let chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || defaultChromePath;
 
-    // Si no existe Chrome, lo instala usando el nuevo CLI de Puppeteer
     if (!fs.existsSync(chromePath)) {
-      console.log("🚀 Instalando Chrome con Puppeteer...");
-      execSync("npx puppeteer browsers install chrome --force", { stdio: "inherit" });
+      console.log("🚀 Verificando instalación de Chrome (sin npx)...");
+      // Lanzamos Puppeteer una vez para forzar instalación automática
+      const browser = await puppeteer.launch({ headless: true });
+      await browser.close();
+      console.log("✅ Chrome detectado y operativo.");
     }
 
-    // Agregamos o actualizamos la variable de entorno en .env
+    // Guardar la ruta en .env si no existe
     let envContent = fs.existsSync(envFile) ? fs.readFileSync(envFile, "utf8") : "";
     if (!envContent.includes("PUPPETEER_EXECUTABLE_PATH=")) {
       envContent += `\nPUPPETEER_EXECUTABLE_PATH=${chromePath}\n`;
