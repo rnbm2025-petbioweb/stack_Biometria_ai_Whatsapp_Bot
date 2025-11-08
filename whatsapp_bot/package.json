@@ -4,10 +4,10 @@
   "description": "Bot de WhatsApp PETBIO en producción",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "postinstall": "node fix-puppeteer.js && npx puppeteer install chrome",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "start": "node index.js",
+  "postinstall": "npx puppeteer browsers install chrome --force",
+  "test": "echo \"Error: no test specified\" && exit 1"
+},
   "engines": {
     "node": ">=18"
   },
