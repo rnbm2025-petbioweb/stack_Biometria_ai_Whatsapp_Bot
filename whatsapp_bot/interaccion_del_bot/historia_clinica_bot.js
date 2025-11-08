@@ -4,17 +4,15 @@
  * Bot de PETBIO que responde a solicitudes de consulta de Historia Clínica.
  */
 
-const mqtt = require('mqtt');
-const mysql = require('mysql2/promise');
+import mqtt from 'mqtt';
+import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
+dotenv.config();
 
 // ==========================
 // Configuración MQTT
 // ==========================
-
-// 🔴 SOLO ACTIVAR UNO SEGÚN EL ENTORNO
-// const MQTT_BROKER = 'mqtt://localhost:1883';              // 🖥️ Local DEV (Mosquitto local)
-// const MQTT_BROKER = 'mqtt://192.168.1.20:1883';           // 🖧 Mosquitto LAN DEV
-const MQTT_BROKER = process.env.MQTT_CLOUD || 'mqtt://duck-01.lmq.cloudamqp.com:1883'; // ☁️ MQTT Cloud PROD
+const MQTT_BROKER = process.env.MQTT_CLOUD || 'mqtt://duck-01.lmq.cloudamqp.com:1883';
 
 const client = mqtt.connect(MQTT_BROKER, {
   clientId: 'historia_clinica_bot_' + Math.random().toString(16).substr(2, 8),
@@ -24,26 +22,19 @@ const client = mqtt.connect(MQTT_BROKER, {
   password: process.env.MQTT_PASS || 'clave_cloud'
 });
 
-client.on('connect', () => {
-  console.log('✅ Historia Clínica Bot conectado a MQTT');
-});
-
-client.on('error', (err) => {
-  console.error('❌ Error historiaClinica -  MQTT:', err.message);
-});
+client.on('connect', () => console.log('✅ Historia Clínica Bot conectado a MQTT'));
+client.on('error', (err) => console.error('❌ Error historiaClinica - MQTT:', err.message));
 
 // ==========================
 // Configuración DB
 // ==========================
 const dbConfig = {
   host: process.env.MYSQL_HOST || '127.0.0.1',
-//'mysql_petbio_secure' 5 octubre modificamos a 127.0.0.1 y 3306 estaba en 3310 ,
   user: process.env.MYSQL_USER || 'root',
   password: process.env.MYSQL_PASSWORD || 'R00t_Segura_2025!',
   database: process.env.MYSQL_DATABASE || 'db__produccion_petbio_segura_2025',
   port: Number(process.env.MYSQL_PORT) || 3306
 };
-
 
 console.log('✅ Entró a historiaClinicaBot');
 
@@ -53,16 +44,13 @@ console.log('✅ Entró a historiaClinicaBot');
 let intentos = {}; // { usuarioId: { historia: n } }
 
 // ==========================
-// Función para enviar mensaje al usuario
+// Funciones principales
 // ==========================
 function enviarMensaje(usuarioId, mensaje) {
   const topic = `petbio/usuario/${usuarioId}`;
   client.publish(topic, mensaje);
 }
 
-// ==========================
-// Función para verificar suscripción
-// ==========================
 async function verificarSuscripcion(id_usuario) {
   try {
     const conn = await mysql.createConnection(dbConfig);
@@ -78,9 +66,6 @@ async function verificarSuscripcion(id_usuario) {
   }
 }
 
-// ==========================
-// Validar acceso al módulo con intentos gratuitos
-// ==========================
 async function validarAcceso(usuarioId, modulo) {
   const suscrito = await verificarSuscripcion(usuarioId);
   if (suscrito) return true;
@@ -106,9 +91,6 @@ async function validarAcceso(usuarioId, modulo) {
   }
 }
 
-// ==========================
-// Obtener mascotas del usuario
-// ==========================
 async function obtenerMascotas(id_usuario) {
   const conn = await mysql.createConnection(dbConfig);
   const [mascotas] = await conn.execute(
@@ -120,9 +102,6 @@ async function obtenerMascotas(id_usuario) {
   return mascotas;
 }
 
-// ==========================
-// Obtener historia clínica de una mascota
-// ==========================
 async function obtenerHistoriaClinica(id_mascota) {
   const conn = await mysql.createConnection(dbConfig);
   const [historias] = await conn.execute(
@@ -136,9 +115,6 @@ async function obtenerHistoriaClinica(id_mascota) {
   return historias;
 }
 
-// ==========================
-// Procesar solicitud de historia clínica
-// ==========================
 async function procesarSolicitud(usuarioId) {
   if (!(await validarAcceso(usuarioId, 'historia'))) return;
 
@@ -193,7 +169,7 @@ async function procesarSolicitud(usuarioId) {
 
     // Volver a menú principal
     try {
-      const menuBot = require('./menu_luego_de_registro_de_usuario');
+      const menuBot = await import('./menu_luego_de_registro_de_usuario.js');
       menuBot.iniciarMenu(usuarioId);
     } catch (err) {
       console.error('❌ Error cargando menú principal:', err.message);
@@ -221,3 +197,10 @@ client.on('message', (topic, message) => {
   }
 });
 
+// ==========================
+// Export default para index.js
+// ==========================
+export default {
+  procesarSolicitud,
+  enviarMensaje
+};
