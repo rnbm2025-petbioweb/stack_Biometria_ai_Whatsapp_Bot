@@ -1,5 +1,5 @@
-// index.js - PETBIO WhatsApp Bot Integrado 🌐 (Docker-ready)
-// ==========================================================
+// index.js - PETBIO WhatsApp Bot Integrado 🌐 (Render Cloud Ready)
+// ================================================================
 
 require('dotenv').config();
 
@@ -12,16 +12,16 @@ const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 
 // ------------------ 🌐 Configuración Supabase ------------------
-const supabaseUrl = 'https://jbsxvonnrahhfffeacdy.supabase.co';
+const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
-console.log("🔑 Supabase Key cargada:", supabaseKey ? "✅ Sí" : "❌ No");
-
-if (!supabaseKey) {
-  console.error("❌ ERROR: No se encontró SUPABASE_KEY. El bot no puede iniciar sin ella.");
+if (!supabaseUrl || !supabaseKey) {
+  console.error("❌ ERROR: Faltan variables SUPABASE_URL o SUPABASE_KEY. El bot no puede iniciar.");
   process.exit(1);
 }
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+console.log("🔑 Supabase inicializado correctamente.");
 
 // ------------------ 📡 Configuración MQTT ------------------
 const { mqttCloud } = require('./config');
@@ -32,7 +32,7 @@ if (mqttCloud) {
   mqttCloud.on('error', (err) => {
     console.error('❌ Error CloudMQTT:', err.message);
     if (err.message.includes("Not authorized")) {
-      console.error("⚠️ Credenciales MQTT inválidas o sin permisos. Revisa USER y PASS en tu .env");
+      console.error("⚠️ Credenciales MQTT inválidas. Verifica USER y PASS en .env");
       mqttCloud.end(true);
     }
   });
@@ -43,12 +43,11 @@ if (mqttCloud) {
   });
 }
 
-//-----------6 de octubre  cambio para whatsapp_bot    dejamos de usar el bot_2, 1
-
-
+// ------------------ 🤖 Configuración del Cliente WhatsApp ------------------
 const whatsappClient = new Client({
   puppeteer: {
     headless: true,
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -57,44 +56,10 @@ const whatsappClient = new Client({
       '--no-zygote'
     ]
   },
-  authStrategy: new LocalAuth()  // ✅ SIN userDataDir
-});
-
-
-/*
-const whatsappClient = new Client({
-  puppeteer: {
-    headless: true,
-    userDataDir: '/usr/src/app/session',  // ✅ Mover aquí
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage'
-      '--single-process',
-      '--no-zygote'
-    ]
-  },
   authStrategy: new LocalAuth()
 });
 
-
-
-// ------------------ 🤖 Cliente WhatsApp ------------------
-const whatsappClient = new Client({
-  puppeteer: {
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage'
-    ]
-  },
-  authStrategy: new LocalAuth({
-    userDataDir: '/usr/src/app/session'  // 📁 Carpeta persistente para Docker
-  })
-});
-*/
-// ------------------ 🌐 Express Healthcheck y QR ------------------
+// ------------------ 🌐 Express Healthcheck & QR ------------------
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -113,7 +78,7 @@ app.get('/qr', (req, res) => {
   else res.status(404).send('❌ QR aún no generado');
 });
 
-app.listen(PORT, () => console.log(`🌐 Healthcheck en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`🌐 Healthcheck corriendo en puerto ${PORT}`));
 
 // ------------------ 📲 Eventos WhatsApp ------------------
 whatsappClient.on('qr', async qr => {
@@ -167,11 +132,10 @@ const deleteSession = async (userId) => {
   }
 };
 
-// ------------------ 📋 Comandos globales ------------------
+// ------------------ 💬 Router principal ------------------
 const CMD_MENU = ['menu', 'inicio', 'volver', 'home'];
 const CMD_CANCEL = ['cancelar', 'salir', 'stop', 'terminar', 'abortar'];
 
-// ------------------ 💬 Flujo principal ------------------
 const saludoDelUsuario = require('./interaccion_del_bot/saludo_del_usuario');
 const menuInicioModule = require('./interaccion_del_bot/menu_inicio');
 const { iniciarRegistroMascota } = require('./interaccion_del_bot/registro_mascotas_bot');
@@ -260,24 +224,15 @@ whatsappClient.on('message', async msg => {
 
   } catch (err) {
     console.error('⚠️ Error en el bot:', err);
-    try {
-      await msg.reply('⚠️ Ocurrió un error. Escribe *menu* para reiniciar.');
-    } catch (_) {}
+    try { await msg.reply('⚠️ Ocurrió un error. Escribe *menu* para reiniciar.'); } catch (_) {}
   }
 });
 
-// ------------------ 📊 Monitoreo memoria ------------------
-/*
+// ------------------ 🧠 Monitoreo de memoria ------------------
 setInterval(() => {
   const used = process.memoryUsage().rss / 1024 / 1024;
-  console.log(`📊 Memoria usada: ${used.toFixed(2)} MB`);
+  console.log(`🧠 Memoria usada: ${used.toFixed(2)} MB`);
 }, 10000);
-*/
-setInterval(() => {
-  const used = process.memoryUsage();
-  console.log(`🧠 Memoria usada: ${(used.rss / 1024 / 1024).toFixed(2)} MB`);
-}, 10000); // cada 10s
-
 
 // 🚀 Inicializar cliente WhatsApp
 whatsappClient.initialize();
