@@ -4,8 +4,9 @@
   "description": "Bot de WhatsApp PETBIO en producción (Render Cloud Ready)",
   "main": "index.js",
   "scripts": {
+    "fix": "node fix-puppeteer.js",
     "start": "node index.js",
-    "postinstall": "node fix-puppeteer.js && npx puppeteer browsers install chrome --force",
+    "postinstall": "npm run fix && npx puppeteer browsers install chrome --force",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "engines": {
@@ -44,7 +45,9 @@
     "render",
     "supabase",
     "mqtt",
-    "automation"
+    "automation",
+    "docker",
+    "puppeteer"
   ],
   "author": "Juan Carlos Osorno Londoño - PETBIO11",
   "license": "MIT"
