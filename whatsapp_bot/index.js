@@ -40,15 +40,19 @@ if (mqttCloud) {
 
 // ------------------ ⚙️ Path de Chrome Automático ------------------
 let chromePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+
 if (!chromePath || !fs.existsSync(chromePath)) {
   try {
-    const puppeteer = require('puppeteer');
+    const puppeteer = require('puppeteer-core');
     chromePath = puppeteer.executablePath();
     console.log(`✅ ChromePath detectado automáticamente: ${chromePath}`);
   } catch (err) {
-    console.error('⚠️ No se pudo detectar ChromePath:', err.message);
+    console.warn('⚠️ Puppeteer-core no pudo detectar Chrome, usando fallback Render path...');
+    chromePath = '/opt/render/.cache/puppeteer/chrome/linux-142.0.7444.61/chrome-linux64/chrome';
   }
 }
+console.log(`🧭 Chrome ejecutable en uso: ${chromePath}`);
+
 
 // ------------------ 🤖 Configuración del Cliente WhatsApp ------------------
 let whatsappClient;
