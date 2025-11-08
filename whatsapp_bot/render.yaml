@@ -3,7 +3,7 @@ services:
     name: whatsapp-bot
     env: node
     plan: free
-    rootDir: whatsapp_bot   # carpeta donde está el package.json
+    rootDir: whatsapp_bot
     buildCommand: |
       yarn install
       node fix-puppeteer.js
@@ -19,7 +19,7 @@ services:
       - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
         value: "true"
       - key: PUPPETEER_EXECUTABLE_PATH
-        value: /opt/render/.cache/puppeteer/chrome/linux-1045629/chrome-linux64/chrome
+        value: /opt/render/.cache/puppeteer/chrome/linux-120.0.6099.109/chrome-linux64/chrome
 
       # ===============================
       # 📲 WhatsApp / Twilio
@@ -34,7 +34,7 @@ services:
         value: whatsapp:+14155238886
 
       # ===============================
-      # 🤖 OpenAI (si lo usas)
+      # 🤖 OpenAI
       # ===============================
       - key: OPENAI_API_KEY
         value: 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
@@ -48,7 +48,7 @@ services:
         value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
       # ===============================
-      # 🐬 MySQL (si tu bot usa MySQL)
+      # 🐬 MySQL
       # ===============================
       - key: MYSQL_HOST
         value: 172.22.0.2
@@ -72,7 +72,7 @@ services:
         value: flwvAT0Npo8piPIZehUr_PnKPrs1JJ8L
 
       # ===============================
-      # 🔗 Servicios PHP (si los integras)
+      # 🔗 PHP Integrator
       # ===============================
       - key: CATALOG_URL
         value: http://php_integrator/catalogos.php
